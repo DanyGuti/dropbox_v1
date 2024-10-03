@@ -1,0 +1,91 @@
+client_watcher.py y client.py ¿qué hará?
+1. Con watchdog, se estará escuchando los eventos que pasen dentro del directorio del despliegue.
+2. El watcher será el padre de client, heredando las funciones
+	que tenga el cliente, el watcher tendrá todo lo demás:
+3. El cliente simplemente hace la conexión por medio de IP con rpyc
+4. El servidor refleja los cambios con base a acciones de eventos escuchados por el watcher
+5. En caso de ser nano, se mandarán por "bloques" el file (chunks), de ser posible manteniendo una sesión con 
+	el proceso que le pertenece
+6. WHEN RESTARTING THE SERVER, THE WATCHES ARE LOST
+
+
+Class ClientWatcher(Client):
+	rpyc RPCs
+	sockets
+	if nano and not doing anything (and file_name is not empty):
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+
+	if nano and file_name does exist (editing without saving nor exiting):
+		nothing happens THAT IS GOOD
+
+	if nano and file_name does not exist (writting to disk without exiting):
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+
+	if nano and (file_name does not exist or does exist) and (saving and writing without exiting):
+		<FileCreatedEvent: event_type=created, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+	if mv file_name and second file_name2 does not exist:
+		<FileMovedEvent: src_path='/Users/Desktop/dropbox_v1/file_name', dest_path='/Users/Desktop/dropbox_v1/file_name2', is_directory=False>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+
+	if nano file_name and file_name does exist (exiting and saving):
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+
+	if touch file_name and file_name does exist:
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+
+	if touch and file_NAME does NOT exist:
+		<FileCreatedEvent: event_type=created, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+
+	if cp /etc/file_name .:
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+		<FileCreatedEvent: event_type=created, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+
+	if head file1 > f2:
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/f2', is_directory=False>
+
+	if echo file_name:
+		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+
+	if rm and file_name exists:
+		<FileDeletedEvent: event_type=deleted, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+
+	if mkdir dir1:
+		<DirCreatedEvent: event_type=created, src_path='/Users/Desktop/dropbox_v1/dir1', is_directory=True>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+
+	if rmdir dir1:
+		<DirDeletedEvent: event_type=deleted, src_path='/Users/Desktop/dropbox_v1/dir1', is_directory=True>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
+		if erased after directory has existed -> "Path already being watched":
+			it breaks (no more watching for that directory NEED TO HANDLE)
+
+	if onChildDir1 and touch file_name:
+		<FileCreatedEvent: event_type=created, src_path='/Users/Desktop/dropbox_v1/dir1/file_name', is_directory=False>
+		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/dir1', is_directory=True>
+
+
+Class Client():
+	def __init__(path, filename, event):
+
+	def sendReq():
+		rpyc.escribirDocumento():
+
+
+	def receiveResp():
+
+Class server:
+	def exposed_handle_cp(self): # this is an exposed method
+		{req: {accion, path, filename}}
+		return "Success"
+
+
+
+
+
