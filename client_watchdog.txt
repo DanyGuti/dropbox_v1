@@ -6,8 +6,6 @@ client_watcher.py y client.py ¿qué hará?
 4. El servidor refleja los cambios con base a acciones de eventos escuchados por el watcher
 5. En caso de ser nano, se mandarán por "bloques" el file (chunks), de ser posible manteniendo una sesión con 
 	el proceso que le pertenece
-6. WHEN RESTARTING THE SERVER, THE WATCHES ARE LOST
-
 
 Class ClientWatcher(Client):
 	rpyc RPCs
