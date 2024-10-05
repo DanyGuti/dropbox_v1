@@ -41,14 +41,17 @@ class ClientWatcher(Client, SystemEventHandler):
             observer.stop()
             observer.join()
     def send_to_client(self, path: str, action: str, file: str, dst: str="", is_dir: bool=False) -> None:
-        self.client.requestResponse = {
+        self.client.request = {
             'src_path' : path,
             'action' : action,
             'file_name' : file,
             'destination_path' : dst,
             'is_directory': is_dir
         }
-        self.client.sendReq()
+        if action == 'nano' or action == 'mv' or action == 'cp' or action == 'modified':
+            self.client.send_file_by_chunks(path, file)
+        else:
+            self.client.send_req()
     def construct_curr_path(self, path_pattern: str) -> str:
         return re.split(r'(\/)', path_pattern)[-1]
         # At each event, join the stack string and
@@ -130,16 +133,16 @@ class ClientWatcher(Client, SystemEventHandler):
                     print("Created directory")
                     accum_events.clear() # Created a directory
                     file_name: str = self.construct_curr_path(event.src_path)
-                    self.send_to_client(event.src_path, 'mkdir', file_name)
+                    self.send_to_client(event.src_path, 'mkdir', file_name, "", True)
                 else:
                     accum_events.clear() # Deleted a directory
                     print("Erased directory")
                     file_name: str = self.construct_curr_path(event.src_path)
-                    self.send_to_client(event.src_path, 'rmdir', file_name)
+                    self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
 
 if __name__ == "__main__":
     client: Client = Client()
-    client.startConnection()
+    client.start_connection()
     if client.conn:
         client_watcher: ClientWatcher = ClientWatcher(client=client)
         client_watcher.start_watching()

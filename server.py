@@ -10,6 +10,11 @@ class MyService(rpyc.Service):
         # code that runs after the connection has already closed
         # (to finalize the service, if needed)
         pass
+    
+    def exposed_upload_chunk(self, request, chunk, file_path, file_name):
+        print(request)
+        print(chunk)
+        return
 
     def exposed_get_answer(self): # this is an exposed method
         return 42
