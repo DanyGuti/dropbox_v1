@@ -10,17 +10,9 @@ client_watcher.py y client.py ¿qué hará?
 Class ClientWatcher(Client):
 	rpyc RPCs
 	sockets
-	if nano and not doing anything (and file_name is not empty):
+	if nano and file_name exists and overwriting:
 		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
-
-	if nano and file_name does exist (editing without saving nor exiting):
-		nothing happens THAT IS GOOD
-
-	if nano and file_name does not exist (writting to disk without exiting):
-		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
-		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
-
-	if nano and (file_name does not exist or does exist) and (saving and writing without exiting):
+	if nano and (file_name does not exist or does exist) and (saving or (writing without exiting)):
 		<FileCreatedEvent: event_type=created, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
 		<DirModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1', is_directory=True>
 		<FileModifiedEvent: event_type=modified, src_path='/Users/Desktop/dropbox_v1/file_name', is_directory=False>
