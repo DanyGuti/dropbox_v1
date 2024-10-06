@@ -99,14 +99,18 @@ class Client():
         '''
         try:  # Acknowledge success
             while(not self.responseQueue.empty()):
-                with self.lock:
-                    response: Response = self.responseQueue.get()  # Wait for a response
-                    if response.error:
-                        self.handleError(response.error)
-                        self.responseQueue.task_done()
-                        continue
-                    print(f"Response from server: {response}")
+                response: Response = self.responseQueue.get()  # Wait for a response
+                if response is None:
+                    self.handleError("Received a None response.")
                     self.responseQueue.task_done()
+                    continue
+                # Check if the error attribute exists before accessing it
+                if hasattr(response, 'error') and response.error is not None:
+                    self.handleError(response.error)
+                    self.responseQueue.task_done()
+                    continue
+                print(f"Response from server: {response}")
+                self.responseQueue.task_done()
         except Exception as e: # Acknowledge failure
             self.handleError(e)
     def handleError(self, error: Optional[Exception | str] = None) -> dict:
