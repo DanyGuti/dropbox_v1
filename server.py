@@ -41,6 +41,6 @@ class DropbBoxV1Service(rpyc.Service):
 
 if __name__ == "__main__":
     from rpyc.utils.server import ThreadedServer
-    t = ThreadedServer(DropbBoxV1Service, port=18861)
+    t: ThreadedServer = ThreadedServer(DropbBoxV1Service, port=18861)
     print(t)
     t.start()
