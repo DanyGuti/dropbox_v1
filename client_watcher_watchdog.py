@@ -3,6 +3,7 @@ import re
 import time
 
 from client import Client
+from custom_req_res import Request
 from system_event_handler import SystemEventHandler
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEvent, \
@@ -41,15 +42,15 @@ class ClientWatcher(Client, SystemEventHandler):
             observer.stop()
             observer.join()
     def send_to_client(self, path: str, action: str, file: str, dst: str="", is_dir: bool=False) -> None:
-        self.client.request = {
-            'src_path' : path,
-            'action' : action,
-            'file_name' : file,
-            'destination_path' : dst,
-            'is_directory': is_dir
-        }
-        if action == 'nano' or action == 'mv' or action == 'cp' or action == 'modified':
-            self.client.send_file_by_chunks(path, file)
+        self.client.request = Request(
+            src_path=path,
+            action=action,
+            file_name=file,
+            destination_path=dst,
+            is_directory=is_dir
+        )
+        if action == 'file_created' or action == 'mv' or action == 'cp' or action == 'modified':
+            self.client.send_file_by_chunks(dst, file) if action == 'mv' else self.client.send_file_by_chunks(path, file)
         else:
             self.client.send_req()
     def construct_curr_path(self, path_pattern: str) -> str:
@@ -78,7 +79,7 @@ class ClientWatcher(Client, SystemEventHandler):
             accum_events.append(curr_event)
         while(len(accum_events) > 0):
             event: FileSystemEvent = accum_events[0]
-            if (len (accum_events) == 4):
+            if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent)):
                 file_event: FileSystemEvent = accum_events[1]
                 file_name: str = self.construct_curr_path(file_event.src_path)
                 accum_events.clear() # cp a file
@@ -90,54 +91,50 @@ class ClientWatcher(Client, SystemEventHandler):
                     and (isinstance(event, FileCreatedEvent))):
                 accum_events.clear()
                 file_name: str = self.construct_curr_path(event.src_path)
-                self.send_to_client(event.src_path, 'nano', file_name)
                 print("Nano and created a new file") # Nano and created file SAVING IT
+                self.send_to_client(event.src_path, 'file_created', file_name)
             elif isinstance(event, (FileMovedEvent)):
                 accum_events.clear() # mv a file
-                file_name: str = self.construct_curr_path(event.src_path)
+                # file_name: str = self.construct_curr_path(event.src_path)
                 file_dest : list = re.split(r'(\/)', event.dest_path)
-                self.send_to_client(event.src_path, 'mv', file_name, file_dest[-1])
                 print("mv a file")
-                pass
+                self.send_to_client(event.src_path, 'mv', file_dest[-1], event.dest_path)
             elif ((len(accum_events) == 1)
                     and (str(event.event_type) == 'modified')
                     and (isinstance(event, FileModifiedEvent))):
-                accum_events.clear() # touch (a file already created) or nano (in disk and exiting or overwriting the file saving and exiting) or head or echo
+                accum_events.clear() # touch (a file already created) or nano (in disk and exiting or overwriting the file saving and exiting) or head or echo or cp into a file that exists
                 file_name: str = self.construct_curr_path(event.src_path)
-                self.send_to_client(event.src_path, 'modified', file_name)
                 print(" touch (a file already created) or nano (in disk and exiting or overwriting the file saving and exiting) or head or echo")
-                pass
+                self.send_to_client(event.src_path, 'modified', file_name)
             elif ((len(accum_events) == 2)
                     and (str(event.event_type) == 'deleted')
                     and not (event.is_directory)
                     and (isinstance(event, FileDeletedEvent))):
                 accum_events.clear() # Deleted a file
                 file_name: str = self.construct_curr_path(event.src_path)
-                self.send_to_client(event.src_path, 'rm', file_name)
                 print("Deleted a file")
-                pass
+                self.send_to_client(event.src_path, 'rm', file_name)
             elif ((len(accum_events) == 2)
                     and (str(event.event_type) == 'created')
                     and not (event.is_directory)
                     and (isinstance(event, FileCreatedEvent))):
                 accum_events.clear()
                 file_name: str = self.construct_curr_path(event.src_path)
-                self.send_to_client(event.src_path, 'touch', file_name)
                 print("touch file")
-                pass
+                self.send_to_client(event.src_path, 'touch', file_name)
             elif ((len(accum_events) == 2)
                     and (event.is_directory)
                     and (isinstance(event, DirCreatedEvent)
                         or (isinstance(event, DirDeletedEvent)))):
                 if event.event_type == 'created':
-                    print("Created directory")
                     accum_events.clear() # Created a directory
                     file_name: str = self.construct_curr_path(event.src_path)
+                    print("Created directory")
                     self.send_to_client(event.src_path, 'mkdir', file_name, "", True)
                 else:
                     accum_events.clear() # Deleted a directory
-                    print("Erased directory")
                     file_name: str = self.construct_curr_path(event.src_path)
+                    print("Erased directory")
                     self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
 
 if __name__ == "__main__":

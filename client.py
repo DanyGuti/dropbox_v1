@@ -1,29 +1,36 @@
 import queue
 import rpyc
 import threading
+from typing import Optional
+from custom_req_res import Request, Response
+from server import DropbBoxV1Service
 
 class Client():
-    conn: rpyc.Connection = None
+    conn: Optional[rpyc.Connection] = None
+    service: Optional[DropbBoxV1Service] = None
     def __init__(self) -> None:
-        self.request = {}
-        self.responseQueue = queue.Queue()
-        self.lock = threading.Lock()
+        self.request: Request = Request()
+        self.responseQueue: queue.Queue[Response] = queue.Queue()
+        self.lock: threading.Lock = threading.Lock()
     def start_connection(self) -> None:
         try:
-            self.conn = rpyc.connect("localhost", 18861)
+            self.conn: rpyc.Connection = rpyc.connect("localhost", 18861)
+            self.service: DropbBoxV1Service = self.conn.root  # Assign the service to the type
             print(f"Connected to server: {self.conn}")
         except Exception as e:
             print(f"Failed to connect to server: {e}")
     def upload_chunk(self, chunk: bytes, file_path: str, file_name: str) -> None:
         try:
             print(f"Uploading chunk of size {len(chunk)} bytes...")
-            response = self.conn.root.upload_chunk(self.request, chunk, file_path, file_name)
+            response = self.service.upload_chunk(self.request, chunk, file_path, file_name)
             with self.lock:  # Ensure thread-safe access to the queue
                 self.responseQueue.put(response)
+                self.process_responses()
         except Exception as e:
             print(f"Failed to send chunk to server: {e}")
 
     def send_file_by_chunks(self, file_path: str, file_name: str) -> None:
+        # Before sending to the server, compare with current file's state
         chunk_size: int = 1024 * 1024  # 1MB chunks
         try:
             with open(file_path, 'rb') as file:
@@ -36,15 +43,31 @@ class Client():
                     chunk = file.read(chunk_size)
         except Exception as e:
             print(f"Failed to send file to server by chunks: {e}")
-    def send_req(self) -> dict:
+    def send_req(self) -> Optional[Response]:
         if self.conn is None:
+            print("No active connection to the server!")
+            return
+        if self.service is None:
             print("No active connection to the server!")
             return
         try:
             # Send request to the server (example method call)
-            response = self.conn.root.get_answer()
-            self.responseQueue.put(response)
-            self.process_responses()
+            requestAction: str = self.request.action
+            response: Optional[Response] = None
+            match requestAction:
+                case 'touch':
+                    response = self.service.file_creation(self.request)
+                case 'rm':
+                    response = self.service.file_deletion(self.request)
+                case 'mkdir':
+                    response = self.service.dir_creation(self.request)
+                case 'rmdir':
+                    response = self.service.dir_deletion(self.request)
+            if response is not None:
+                with self.lock:
+                    self.responseQueue.put(response)
+                    self.process_responses()
+            return response
         except Exception as e:
             print(f"Failed to send request: {e}")
         ## rpyc.escribirDocumento():
@@ -56,6 +79,6 @@ class Client():
                 self.responseQueue.task_done()
         except Exception as e: # Acknowledge failure
             self.handleError()
-            print(f"Failed to send request: {e}")
-    def handleError() -> dict:
+            print(f"Failed to process response: {e}")
+    def handleError(self) -> dict:
         pass
