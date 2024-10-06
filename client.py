@@ -1,9 +1,10 @@
+import os
 import queue
 import rpyc
 import threading
 from typing import Optional
 from custom_req_res import Request, Response
-from server import DropbBoxV1Service
+from dropbox_interface import IDropBoxServiceV1
 
 class Client():
     '''
@@ -18,7 +19,7 @@ class Client():
     '''
     def __init__(self) -> None:
         self.conn: Optional[rpyc.Connection] = None
-        self.service: Optional[DropbBoxV1Service] = None
+        self.service: Optional[IDropBoxServiceV1] = None
         self.request: Request = Request()
         self.responseQueue: queue.Queue[Response] = queue.Queue()
         self.lock: threading.Lock = threading.Lock()
@@ -28,7 +29,7 @@ class Client():
         '''
         try:
             self.conn: rpyc.Connection = rpyc.connect("localhost", 18861)
-            self.service: DropbBoxV1Service = self.conn.root  # Assign the service to the type
+            self.service: IDropBoxServiceV1 = self.conn.root  # Assign the service to the type
             print(f"Connected to server: {self.conn}")
         except Exception as e:
             self.handleError(f"Failed to send chunk to server: {e}")
@@ -52,6 +53,12 @@ class Client():
         # Before sending to the server, compare with current file's state
         chunk_size: int = 1024 * 1024  # 1MB chunks
         try:
+            # Check if the file is empty
+            if os.path.getsize(file_path) == 0:
+                self.request.action = 'touch'
+                print(f"File '{file_name}' is empty. Only creating the file on the server without sending data.")
+                self.upload_chunk(b'', file_path, file_name)  # Create the file on the server without data
+                return
             with open(file_path, 'rb') as file:
                 chunk: bytes = file.read(chunk_size)
                 while(chunk):
