@@ -2,9 +2,10 @@ import rpyc
 import rpyc.core
 import rpyc.core.protocol
 from custom_req_res import Request, Response
+from dropbox_interface import IDropBoxServiceV1
 
 @rpyc.service
-class DropbBoxV1Service(rpyc.Service):
+class DropbBoxV1Service(rpyc.Service, IDropBoxServiceV1):
     def on_connect(self, conn: rpyc.Connection) -> None:
         # code that runs when a connection is created
         # (to init the service, if needed)
