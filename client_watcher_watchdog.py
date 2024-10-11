@@ -175,7 +175,16 @@ class ClientWatcher(Client, SystemEventHandler):
 
 if __name__ == "__main__":
     client: Client = Client()
-    client.start_connection()
-    if client.conn:
-        client_watcher: ClientWatcher = ClientWatcher(client=client)
-        client_watcher.start_watching()
+    client.start_connection(CWD)
+    try:
+        if client.conn:
+            client_watcher: ClientWatcher = ClientWatcher(client=client)
+            client_watcher.start_watching()
+    except KeyboardInterrupt:
+        client.close_connection()
+    except EOFError:
+        client.close_connection()
+    except Exception as e:
+        client.handleError(e)
+    finally:
+        client.close_connection()

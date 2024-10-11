@@ -10,7 +10,10 @@ class IDropBoxServiceV1(ABC):
     def on_disconnect(self, conn: rpyc.Connection) -> None:
         pass
     @abstractmethod
-    def upload_chunk(self, request: Request, chunk: int, file_path: str, file_name: str) -> Response:
+    def set_client_path(self, CWD: str) -> None:
+        pass
+    @abstractmethod
+    def upload_chunk(self, request: Request, chunk: int) -> Response:
         pass
     @abstractmethod
     def file_creation(self, request: Request) -> Response:

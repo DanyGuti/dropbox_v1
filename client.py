@@ -5,6 +5,7 @@ import threading
 from typing import Optional
 from custom_req_res import Request, Response
 from dropbox_interface import IDropBoxServiceV1
+IP_ADDRESS_SERVER: str = "158.227.127.15"
 
 class Client():
     '''
@@ -23,23 +24,25 @@ class Client():
         self.request: Request = Request()
         self.responseQueue: queue.Queue[Response] = queue.Queue()
         self.lock: threading.Lock = threading.Lock()
-    def start_connection(self) -> None:
+    def start_connection(self, CWD: str) -> None:
         '''
         Start connection to the server (Service)
         '''
         try:
-            self.conn: rpyc.Connection = rpyc.connect("localhost", 18861)
+            self.conn: rpyc.Connection = rpyc.connect(IP_ADDRESS_SERVER, 50080, config={"allow_public_attrs": True})
             self.service: IDropBoxServiceV1 = self.conn.root  # Assign the service to the type
             print(f"Connected to server: {self.conn}")
+            self.service.set_client_path(CWD)
+            
         except Exception as e:
             self.handleError(f"Failed to send chunk to server: {e}")
-    def upload_chunk(self, chunk: bytes, file_path: str, file_name: str) -> None:
+    def upload_chunk(self, chunk: bytes) -> None:
         '''
         Upload a chunk of a file to the server
         '''
         try:
             print(f"Uploading chunk of size {len(chunk)} bytes...")
-            response = self.service.upload_chunk(self.request, chunk, file_path, file_name)
+            response: Response = self.service.upload_chunk(self.request, chunk)
             with self.lock:  # Ensure thread-safe access to the queue
                 self.responseQueue.put(response)
                 self.process_responses()
@@ -57,14 +60,14 @@ class Client():
             if os.path.getsize(file_path) == 0:
                 self.request.action = 'touch'
                 print(f"File '{file_name}' is empty. Only creating the file on the server without sending data.")
-                self.upload_chunk(b'', file_path, file_name)  # Create the file on the server without data
+                self.upload_chunk(b'')  # Create the file on the server without data
                 return
             with open(file_path, 'rb') as file:
                 chunk: bytes = file.read(chunk_size)
                 while(chunk):
                     threading.Thread(
                         target=self.upload_chunk,
-                        args=(chunk, file_path, file_name)
+                        args=(chunk)
                     ).start()
                     chunk = file.read(chunk_size)
         except Exception as e:
