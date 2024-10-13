@@ -1,8 +1,10 @@
 import rpyc
 import rpyc.core
 import rpyc.core.protocol
+import shutil
 from custom_req_res import Response
 from custom_req_res import Request
+from typing import Callable
 
 import os
 
@@ -15,8 +17,8 @@ import os
 # (just the change from the past state to the current state)
 # setting the past state to the current state
 # server mounted state dir: dropbox_genial_loli_app
-def apply_set_client_dir_state_wrapper(method: callable) -> callable:
-    def wrapper(self, *args: tuple, **kwargs: dict[str, any]) -> callable:
+def apply_set_client_dir_state_wrapper(method: Callable[['DropbBoxV1Service', Request], (bool | Exception)]) -> (bool | Exception):
+    def wrapper(self: 'DropbBoxV1Service', *args: tuple[Request], **kwargs: dict[str, any]) -> (bool | Exception):
         req_client: Request = args[0]
         self.set_client_state_path(req_client)
         return method(self, *args, **kwargs)
@@ -78,6 +80,12 @@ def delete_directory (relative_path: str) -> (Exception | None):
         print(f"Error: {e}")
         return e
 
+def getDiffPath(path: str, client_path: str) -> str:
+    return os.path.relpath(path, client_path)
+def normalizePath(path: str) -> str:
+    return os.path.normpath(path)
+
+
 @rpyc.service
 class DropbBoxV1Service(rpyc.Service):
     def __init__(self) -> None:
@@ -100,29 +108,17 @@ class DropbBoxV1Service(rpyc.Service):
         return
     
     def set_client_state_path(self, request: Request) -> (bool | Exception):
-        def getDiffPath(path: str) -> str:
-            return os.path.relpath(path, self.client_path)
-        def normalizePath(path: str) -> str:
-            return os.path.normpath(path)
         try:
             if (request.src_path == self.client_path or request.src_path == ""):
                 return False
             # Getting the difference between the two paths
-            diff_path: str = getDiffPath(request.src_path)
+            diff_path: str = getDiffPath(request.src_path, self.client_path)
             # Update server_relative_path and normalize it
             new_relative_path: str = os.path.join(self.server_relative_path, diff_path)
             # Remove the '..' from the path, if any
             self.server_relative_path: str = normalizePath(new_relative_path)
             self.client_path: str = request.src_path
 
-            # Case of mv a file
-            if request.destination_path != "":
-                delete_file(self.server_relative_path)
-                # Get difference from path to delete, then change to the path to overwrite
-                diff_path: str = getDiffPath(request.destination_path)
-                new_relative_path: str = os.path.join(self.server_relative_path, diff_path)
-                # normalize
-                self.server_relative_path: str = normalizePath(new_relative_path)
             # Check if the updated path exists
             if not os.path.exists(self.server_relative_path):
                 print(f"Something went wrong: the directory {self.server_relative_path} not found.")
@@ -142,30 +138,35 @@ class DropbBoxV1Service(rpyc.Service):
     @apply_set_client_dir_state_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> Response:
         #Caso chunk vacio-- file by chunk empty
-        if filter(lambda x: x == ('file_created' or 'modified' or 'touch' or 'cp' or 'created'), request.src_path) != []:
+        if request.action in ['file_created', 'modified', 'touch', 'cp', 'created']:
             try:
-                delete_file(self.server_relative_path)
+                # delete_file(self.server_relative_path)
                 with open(self.server_relative_path, "wb") as arc:
                     arc.write(chunk)
                 return Response(message = request.file_name + " succesfully modified file!", status_code=0)
-            # except FileExistsError:
-            #     print(f"Something went wrong: the file {request.file_name} already exists in the given path.")
-            #     return Response(error = "FileExistsError", message = "Error: ", status_code = -2)
             except Exception as e:
                 print(f"Error: {e}")
                 return Response(error = e, message = f'Error in action: {request.action}, error: {e}', status_code = 13)
 
-            #print(self.server_relative_path)
-            #create_empty_file(self.server_relative_path)
         elif request.action == "mv":
-            print(request.destination_path)
+            dst_path: str = request.destination_path
+            print(dst_path)
+            print(self.server_relative_path)
             try:
-                with open(self.server_relative_path, "wb") as arc:
-                    arc.write(chunk)
-                print(request)
-                print(chunk)
-                print(f"Chunk succesfully chunked, chunk.\nregards, C. Hunk")
-                return Response(message = request.file_name + " succesfully modified file!", status_code=0)
+                print(f"destination_path: {dst_path}")
+                src_path: str = self.server_relative_path
+                # Get difference from path to delete, then change to the path to overwrite
+                diff_path: str = getDiffPath(dst_path, self.client_path)
+                new_relative_path: str = os.path.join(self.server_relative_path, diff_path)
+                # normalize
+                self.server_relative_path: str = normalizePath(new_relative_path)
+                
+                # Handle the case when the file does not exist (create empty file)
+                if not os.path.exists(self.server_relative_path):
+                    with open(self.server_relative_path, "wb") as empty_file:
+                        empty_file.write(b'')
+                shutil.move(src_path, self.server_relative_path)
+                return Response(message = request.file_name + " succesfully moved file!", status_code=0)
             except Exception as e:
                 print(f"Error: {e}")
                 return Response(error = e, message = "Error: ", status_code = 13)
