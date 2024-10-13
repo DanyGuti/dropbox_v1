@@ -5,7 +5,7 @@ import threading
 from typing import Optional
 from custom_req_res import Request, Response
 from dropbox_interface import IDropBoxServiceV1
-IP_ADDRESS_SERVER: str = "158.227.127.15"
+IP_ADDRESS_SERVER: str = "158.227.124.232"
 
 class Client():
     '''
@@ -67,7 +67,7 @@ class Client():
                 while(chunk):
                     threading.Thread(
                         target=self.upload_chunk,
-                        args=(chunk)
+                        args=(chunk,)
                     ).start()
                     chunk = file.read(chunk_size)
         except Exception as e:
