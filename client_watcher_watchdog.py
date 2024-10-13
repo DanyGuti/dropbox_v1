@@ -80,22 +80,6 @@ class ClientWatcher(Client, SystemEventHandler):
         Construct the current path from the path pattern
         '''
         return re.split(r'(\/)', path_pattern)[-1]
-        # At each event, join the stack string and
-        # compare with the src_path
-        # If the string is different:
-            # New file can be the difference
-                # When only the difference does not contain
-                # any '/'
-            # User has went back in directory
-                # When the length is less of the src_path
-                # than the stack curr_node
-                    # Remove from the curr_node stack until
-                    # the complete string is equal to src_path
-            # User has went up in another directory
-                # When the length of the src_path is greater
-                # than the stack curr_node
-                    # Add to the currStack the path to it
-        
     def parser(self) -> None:
         '''
         Parse the events and send to the client
@@ -122,7 +106,7 @@ class ClientWatcher(Client, SystemEventHandler):
                     print("Nano and created a new file") # Nano and created file SAVING IT
                     self.send_to_client(event.src_path, 'file_created', file_name)
                 elif (isinstance(event, FileMovedEvent) or 
-                    (len(accum_events) == 5 and all(isinstance(e, (FileMovedEvent, FileDeletedEvent, FileModifiedEvent, DirModifiedEvent)) for e in accum_events)) or
+                    (len(accum_events) >= 5 and all(isinstance(e, (FileMovedEvent, FileDeletedEvent, FileModifiedEvent, DirModifiedEvent)) for e in accum_events)) or
                     (len(accum_events) == 3 and all(isinstance(e, (FileModifiedEvent, FileMovedEvent, DirModifiedEvent)) for e in accum_events))):
                     moved_event = next((e for e in accum_events if isinstance(e, FileMovedEvent)), None)
                     accum_events.clear() # mv a file
@@ -134,7 +118,7 @@ class ClientWatcher(Client, SystemEventHandler):
                         and not (any(isinstance(e, (DirCreatedEvent)) for e in accum_events))
                         and not (any(isinstance(e, (FileDeletedEvent)) for e in accum_events))
                         and not (any(isinstance(e, (DirDeletedEvent)) for e in accum_events))
-                        or (len(accum_events) == 3)
+                        or (len(accum_events) == 3) and not (any(isinstance(e, (DirCreatedEvent, FileDeletedEvent, DirDeletedEvent)) for e in accum_events))
                         and (str(event.event_type) == 'modified')
                         and (isinstance(event, FileModifiedEvent))):
                     accum_events.clear() # touch (a file already created) or nano (in disk and exiting or overwriting the file saving and exiting) or head or echo or cp into a file that exists
