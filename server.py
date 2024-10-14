@@ -12,9 +12,6 @@ import rpyc.core.protocol
 from custom_req_res import Response
 from custom_req_res import Request
 
-
-# Revisar un mv de un file a otro file que no existe
-
 # /users/desktop/dropboxv1 past state
 # /users/desktop/dropboxv1/dir1 curr state set to that path
 # getting the difference between the two
@@ -35,7 +32,10 @@ def apply_set_client_dir_state_wrapper(
         **kwargs: dict[str, any]
     ) -> (bool | Exception):
         req_client: Request = args[0]
-        self.set_client_state_path(req_client)
+        result = self.set_client_state_path(req_client)
+        if result is False:
+            print(f"Failed to set client state path: {result}")
+            return result  # Exit early if setting client path fails
         return method(self, *args, **kwargs)
     return wrapper
 
@@ -160,11 +160,17 @@ class DropbBoxV1Service(rpyc.Service):
             self.client_path: str = request.src_path
 
             # Check if the updated path exists
-            if not os.path.exists(self.server_relative_path):
-                print(f"Something went wrong: the directory {self.server_relative_path} not found.")
-                return False
+            print(f"Checking existence of path: {self.server_relative_path}")
+            if request.action not in ['file_created', 'modified', 'touch', 'cp', 'created', 'mv']:
+                if not os.path.exists(self.server_relative_path):
+                    print(self.server_relative_path)
+                    print(f"Something went wrong: the parent directory\
+                        {os.path.dirname(self.server_relative_path)}\
+                    not found.")
+                    return False
             return True
         except (OSError, IOError) as e:
+            print("ERRORRRR")
             print(f"Error: {e}")
             return e
 
@@ -174,6 +180,7 @@ class DropbBoxV1Service(rpyc.Service):
         Set the client path when the connection is established
         '''
         self.client_path = cwd
+        print(f"Client path set to: {self.client_path}")
         return self.client_path
 
     @rpyc.exposed
@@ -182,6 +189,7 @@ class DropbBoxV1Service(rpyc.Service):
         '''
         upload a chunk of a file to the server
         '''
+        print(f"Uploading chunk of size {len(chunk)} bytes...")
         #Caso chunk vacio-- file by chunk empty
         if request.action in ['file_created', 'modified', 'touch', 'cp', 'created']:
             try:
@@ -317,7 +325,7 @@ if __name__ == "__main__":
         os.chdir(DIR_NAME)
         print(f"Changed to directory: {os.getcwd()}")
         from rpyc.utils.server import ThreadedServer
-        t = ThreadedServer(DropbBoxV1Service, port=50080)
+        t = ThreadedServer(DropbBoxV1Service, port=50080, auto_register=True)
         print(t)
         t.start()
     except (OSError, IOError) as e:
