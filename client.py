@@ -33,13 +33,29 @@ class Client():
         Start connection to the server (Service)
         '''
         try:
-            self.conn: rpyc.Connection = rpyc.connect(
-                IP_ADDRESS_SERVER,
-                50080,
-                config={"allow_public_attrs": True}
-            )
-            self.service: IDropBoxServiceV1 = self.conn.root  # Assign the service to the type
-            print(f"Connected to server: {self.conn}")
+            # self.conn: rpyc.Connection = rpyc.connect(
+            #     IP_ADDRESS_SERVER,
+            #     50080,
+            #     config={"allow_public_attrs": True}
+            # )
+            registry: (list[tuple]) = rpyc.discover("DROPBBOXV1")  # Discover the registry server
+            self.service: IDropBoxServiceV1 = None
+            # registry = rpyc.connect("localhost", 18861)  # Default port for the registry server
+            for service in registry:
+                self.conn: rpyc.Connection  = rpyc.connect(
+                    service[0],
+                    service[1],
+                    config={"allow_public_attrs": True
+                })  # Store the connection
+                self.service: IDropBoxServiceV1 = self.conn.root  # Get the root of the service
+                print(f"Connected to server: {self.conn}")
+                if self.service:
+                    print("Connected to the service successfully.")
+                    break  # Exit the loop if successfully connected
+            if self.service is None:
+                print("No available services found.")
+                return
+            # Set the client path when the connection is established
             self.service.set_client_path(cwd)
         except (KeyboardInterrupt, SystemExit):
             print("Exiting...")
