@@ -1,15 +1,21 @@
+'''
+ClientWatcher class to watch for system events
+child class of Client
+'''
+
 import os
 import re
 import time
 import threading
 
-from client import Client
-from custom_req_res import Request
-from system_event_handler import SystemEventHandler
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
+
+from client import Client
+from custom_req_res import Request
+from system_event_handler import SystemEventHandler
 
 CWD: str = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,15 +31,14 @@ class ClientWatcher(Client, SystemEventHandler):
         accumulation_timeout: float
         lock: threading.Lock
     '''
-    def __init__(self, client: Client) -> None:
+    def __init__(self, client_instance: Client) -> None:
         super().__init__()  # Initialize the parent class (Client)
-        self.client: Client = client
+        self.client: Client = client_instance
         self._dispatcher: list = []
         self.last_event_time: time = time.time()  # Track the time of the last event
         self.accumulation_timeout: float = 0.25
         self.lock: threading.Lock = threading.Lock()
         # self.root_path_stack: list = re.split(r'(\/)', CWD)
-        
     # Call the parent class
     def on_any_event(self, event: FileSystemEvent) -> None:
         '''
@@ -55,12 +60,20 @@ class ClientWatcher(Client, SystemEventHandler):
             while True:
                 time.sleep(0.1)
                 # Wait for batch processing
-                if (time.time() - self.last_event_time) > self.accumulation_timeout and len(self._dispatcher) > 0:
+                if (time.time() - self.last_event_time) > self.accumulation_timeout and\
+                    len(self._dispatcher) > 0:
                     self.parser()  # Batch processing
         finally:
             observer.stop()
             observer.join()
-    def send_to_client(self, path: str, action: str, file: str, dst: str="", is_dir: bool=False) -> None:
+    def send_to_client(
+        self,
+        path: str,
+        action: str,
+        file: str,
+        dst: str="",
+        is_dir: bool=False
+        ) -> None:
         '''
         Send the request to the client
         '''
@@ -72,7 +85,10 @@ class ClientWatcher(Client, SystemEventHandler):
             src_path=path
             )
         if action == 'file_created' or action == 'mv' or action == 'cp' or action == 'modified':
-            self.client.send_file_by_chunks(dst, file) if action == 'mv' else self.client.send_file_by_chunks(path, file)
+            if action == 'mv':
+                self.client.send_file_by_chunks(dst, file)
+            else:
+                self.client.send_file_by_chunks(path, file)
         else:
             self.client.send_req()
     def construct_curr_path(self, path_pattern: str) -> str:
@@ -86,16 +102,15 @@ class ClientWatcher(Client, SystemEventHandler):
         '''
         accum_events: list = []
         with self.lock:
-            while (len(self._dispatcher) > 0):
+            while len(self._dispatcher) > 0:
                 curr_event: FileSystemEvent = self._dispatcher.pop(0)
                 accum_events.append(curr_event)
-            while(len(accum_events) > 0):
+            while len(accum_events) > 0:
                 event: FileSystemEvent = accum_events[0]
                 if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent)):
                     file_event: FileSystemEvent = accum_events[1]
                     file_name: str = self.construct_curr_path(file_event.src_path)
                     accum_events.clear() # cp a file
-                    print("cp a file")
                     self.send_to_client(event.src_path, 'cp', file_name)
                 elif ((len (accum_events) == 3)
                         and ((str(event.event_type) == 'modified')
@@ -103,9 +118,9 @@ class ClientWatcher(Client, SystemEventHandler):
                         and (isinstance(event, FileCreatedEvent))):
                     accum_events.clear()
                     file_name: str = self.construct_curr_path(event.src_path)
-                    print("Nano and created a new file") # Nano and created file SAVING IT
+                    # Nano and created file SAVING IT
                     self.send_to_client(event.src_path, 'file_created', file_name)
-                elif (isinstance(event, FileMovedEvent) or 
+                elif (isinstance(event, FileMovedEvent) or\
                     (len(accum_events) >= 5 and all(isinstance(e, (FileMovedEvent, FileDeletedEvent, FileModifiedEvent, DirModifiedEvent)) for e in accum_events)) or
                     (len(accum_events) == 3 and all(isinstance(e, (FileModifiedEvent, FileMovedEvent, DirModifiedEvent)) for e in accum_events))):
                     moved_event = next((e for e in accum_events if isinstance(e, FileMovedEvent)), None)
@@ -121,14 +136,12 @@ class ClientWatcher(Client, SystemEventHandler):
                         or (len(accum_events) == 3) and not (any(isinstance(e, (DirCreatedEvent, FileDeletedEvent, DirDeletedEvent)) for e in accum_events))
                         and (str(event.event_type) == 'modified')
                         and (isinstance(event, FileModifiedEvent))):
-                    accum_events.clear() # touch (a file already created) or nano (in disk and exiting or overwriting the file saving and exiting) or head or echo or cp into a file that exists
+                    accum_events.clear() # Modified a file
                     file_name: str = self.construct_curr_path(event.src_path)
-                    print(" touch (a file already created) or nano (in disk and exiting or overwriting the file saving and exiting) or head or echo")
                     self.send_to_client(event.src_path, 'modified', file_name)
                 elif ((any(isinstance(e, (FileDeletedEvent)) for e in accum_events))):
                     accum_events.clear() # Deleted a file
                     file_name: str = self.construct_curr_path(event.src_path)
-                    print("Deleted a file")
                     self.send_to_client(event.src_path, 'rm', file_name)
                 elif ((len(accum_events) == 2)
                         and (str(event.event_type) == 'created')
@@ -136,7 +149,6 @@ class ClientWatcher(Client, SystemEventHandler):
                         and (isinstance(event, FileCreatedEvent))):
                     accum_events.clear()
                     file_name: str = self.construct_curr_path(event.src_path)
-                    print("touch file")
                     self.send_to_client(event.src_path, 'touch', file_name)
                 elif ((len(accum_events) == 2)
                         and (event.is_directory)
@@ -145,12 +157,10 @@ class ClientWatcher(Client, SystemEventHandler):
                     if event.event_type == 'created':
                         accum_events.clear() # Created a directory
                         file_name: str = self.construct_curr_path(event.src_path)
-                        print("Created directory")
                         self.send_to_client(event.src_path, 'mkdir', file_name, "", True)
                     else:
                         accum_events.clear() # Deleted a directory
                         file_name: str = self.construct_curr_path(event.src_path)
-                        print("Erased directory")
                         self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
                 else:
                     accum_events.clear()
@@ -162,13 +172,13 @@ if __name__ == "__main__":
     client.start_connection(CWD)
     try:
         if client.conn:
-            client_watcher: ClientWatcher = ClientWatcher(client=client)
+            client_watcher: ClientWatcher = ClientWatcher(client_instance=client)
             client_watcher.start_watching()
     except KeyboardInterrupt:
         client.close_connection()
     except EOFError:
         client.close_connection()
-    except Exception as e:
-        client.handleError(e)
+    except (ConnectionError, OSError) as e:
+        client.handle_error(e)
     finally:
         client.close_connection()

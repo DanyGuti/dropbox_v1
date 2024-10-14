@@ -1,3 +1,7 @@
+'''
+Custom dataclasses
+for request and response objects
+'''
 from dataclasses import dataclass, field
 from typing import Optional
 

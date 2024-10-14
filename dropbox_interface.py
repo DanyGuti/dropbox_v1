@@ -1,29 +1,52 @@
+'''
+This file contains the interface for the DropBox service.
+'''
+
 from abc import ABC, abstractmethod
-from custom_req_res import Request, Response
 import rpyc
+from custom_req_res import Request, Response
 
 class IDropBoxServiceV1(ABC):
+    '''
+    Interface for the DropBox service
+    '''
     @abstractmethod
     def on_connect(self, conn: rpyc.Connection) -> None:
-        pass
+        '''
+        Method to be called when a connection is established
+        '''
     @abstractmethod
     def on_disconnect(self, conn: rpyc.Connection) -> None:
-        pass
+        '''
+        Method to be called when a connection is closed
+        '''
     @abstractmethod
-    def set_client_path(self, CWD: str) -> None:
-        pass
+    def set_client_path(self, cwd: str) -> None:
+        '''
+        Set the client path
+        '''
     @abstractmethod
     def upload_chunk(self, request: Request, chunk: int) -> Response:
-        pass
+        '''
+        Upload a chunk of a file to the server
+        '''
     @abstractmethod
     def file_creation(self, request: Request) -> Response:
-        pass
+        '''
+        Create a file on the server
+        '''
     @abstractmethod
     def file_deletion(self, request: Request) -> Response:
-        pass
+        '''
+        Delete a file on the server
+        '''
     @abstractmethod
     def dir_creation(self, request: Request) -> Response:
-        pass
+        '''
+        Create a directory on the server
+        '''
     @abstractmethod
     def dir_deletion(self, request: Request) -> Response:
-        pass
+        '''
+        Delete a directory on the server
+        '''
