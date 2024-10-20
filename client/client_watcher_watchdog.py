@@ -13,11 +13,13 @@ from watchdog.events import FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
 
-from client import Client
-from custom_req_res import Request
-from system_event_handler import SystemEventHandler
+# Import client from same directory
+from client_impl import Client
+from utils.custom_req_res import Request
+from utils.task import Task
+from client.system_event_handler import SystemEventHandler
 
-CWD: str = os.path.dirname(os.path.abspath(__file__))
+CWD: str = os.path.dirname(os.path.abspath(__file__) + "../")
 
 # Grab the events from local system and send to server via rpyc (RPCs)
 class ClientWatcher(Client, SystemEventHandler):
@@ -82,6 +84,8 @@ class ClientWatcher(Client, SystemEventHandler):
             destination_path=dst,
             file_name=file,
             is_directory=is_dir,
+            task=Task(1, 1, time.time()),
+            time_of_request=time.time(),
             src_path=path
             )
         if action == 'file_created' or action == 'mv' or action == 'cp' or action == 'modified':

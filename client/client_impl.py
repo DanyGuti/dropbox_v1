@@ -7,9 +7,11 @@ import queue
 from typing import Optional
 import threading
 import rpyc
-from custom_req_res import Request, Response
-from dropbox_interface import IDropBoxServiceV1
-IP_ADDRESS_SERVER: str = "158.227.127.16"
+from rpyc.utils.registry import UDPRegistryClient
+from rpyc.utils.factory import discover
+from utils.custom_req_res import Request, Response
+from server.interfaces.dropbox_interface import IDropBoxServiceV1
+IP_ADDRESS_SERVER: str = "158.227.124.203"
 
 class Client():
     '''
@@ -35,32 +37,55 @@ class Client():
         try:
             # self.conn: rpyc.Connection = rpyc.connect(
             #     IP_ADDRESS_SERVER,
-            #     50080,
+            #     50082,
             #     config={"allow_public_attrs": True}
             # )
-            registry: (list[tuple]) = rpyc.discover("DROPBBOXV1")  # Discover the registry server
-            self.service: IDropBoxServiceV1 = None
-            # registry = rpyc.connect("localhost", 18861)  # Default port for the registry server
-            for service in registry:
-                self.conn: rpyc.Connection  = rpyc.connect(
+            # self.service: IDropBoxServiceV1 = self.conn.root
+            # talk_to_master = rpyc.connect(
+            #     IP_ADDRESS_SERVER,
+            #     50081,
+            #     config={"allow_public_attrs": True}
+            # ).root.talk_to_slave(self.request)
+            # print(talk_to_master)
+            # registry: (list[tuple]) = rpyc.discover("DROPBBOXV1")  # Discover the registry server
+            registry = UDPRegistryClient(ip="158.227.127.19", port=50082)  # Discover the registry server
+            print(registry)
+            discovered_services = discover("MASTERSERVER", registrar=registry)
+            print(discovered_services)
+            for service in discovered_services:
+                self.conn: rpyc.Connection = rpyc.connect(
                     service[0],
                     service[1],
                     config={"allow_public_attrs": True
-                })  # Store the connection
-                self.service: IDropBoxServiceV1 = self.conn.root  # Get the root of the service
-                print(f"Connected to server: {self.conn}")
-                if self.service:
-                    print("Connected to the service successfully.")
-                    break  # Exit the loop if successfully connected
-            if self.service is None:
+                })
+            if self.conn is None:
                 print("No available services found.")
                 return
+            self.service = self.conn.root
+            print(f"Connected to server: {self.conn}")
+            # self.service: IDropBoxServiceV1 = None
+            # # registry = rpyc.connect("localhost", 18861)  # Default port for the registry server
+            # for service in registry:
+            #     self.conn: rpyc.Connection  = rpyc.connect(
+            #         service[0],
+            #         service[1],
+            #         config={"allow_public_attrs": True
+            #     })  # Store the connection
+            #     self.service: IDropBoxServiceV1 = self.conn.root  # Get the root of the service
+            #     print(f"Connected to server: {self.conn}")
+            #     if self.service:
+            #         print("Connected to the service successfully.")
+            #         break  # Exit the loop if successfully connected
+            # if self.service is None:
+            #     print("No available services found.")
+            #     return
             # Set the client path when the connection is established
             self.service.set_client_path(cwd)
         except (KeyboardInterrupt, SystemExit):
             print("Exiting...")
             self.conn.close()
         except (OSError) as e: # Acknowledge failure
+            print(e)
             self.handle_error(e)
     def close_connection(self) -> None:
         '''
