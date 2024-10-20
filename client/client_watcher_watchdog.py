@@ -14,13 +14,15 @@ from watchdog.events import FileSystemEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
 
 # Import client from same directory
-from client_impl import Client
+from client.client_impl import Client
 from utils.custom_req_res import Request
 from utils.task import Task
 from client.system_event_handler import SystemEventHandler
 
-CWD: str = os.path.dirname(os.path.abspath(__file__) + "../")
-
+# Get the directory of the current file
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Move two directories up
+CWD = os.path.normpath(os.path.join(current_dir, ".."))
 # Grab the events from local system and send to server via rpyc (RPCs)
 class ClientWatcher(Client, SystemEventHandler):
     '''
