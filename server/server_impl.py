@@ -1,7 +1,6 @@
 '''
 Server side of the dropbox application
 '''
-from typing import Callable
 import shutil
 import os
 import sys
@@ -41,6 +40,7 @@ class DropbBoxV1Service(
         '''
         print("Goodbye client!", conn)
 
+    @rpyc.exposed
     @BaseServerService.apply_set_client_dir_state_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> Response:
         '''
@@ -93,7 +93,7 @@ class DropbBoxV1Service(
                 return Response(error=e, message="Error: ", status_code=13)
         else:
             return Response(error="ActionError", message="Error: ", status_code=3)
-
+    @rpyc.exposed
     @BaseServerService.apply_set_client_dir_state_wrapper
     def file_creation(self, request: Request) -> Response: #touch en principio hecho
         '''
@@ -112,6 +112,7 @@ class DropbBoxV1Service(
             print(f"Error: {e}")
             return Response(error=e, message=f'Error en action: {e}', status_code=13)
 
+    @rpyc.exposed
     @BaseServerService.apply_set_client_dir_state_wrapper
     def file_deletion(self, request: Request) -> Response: #rm
         '''
@@ -131,7 +132,7 @@ class DropbBoxV1Service(
         except (OSError, IOError) as e:
             print(f"Error: {e}")
             return Response(error=e, message="Error: ", status_code=13)
-
+    @rpyc.exposed
     @BaseServerService.apply_set_client_dir_state_wrapper
     def dir_creation(self, request: Request) -> Response: #mkdir
         '''
@@ -149,7 +150,7 @@ class DropbBoxV1Service(
         except (OSError, IOError) as e:
             print(f"Error: {e}")
             return Response(error=e, message="Error: ", status_code=13)
-
+    @rpyc.exposed
     @BaseServerService.apply_set_client_dir_state_wrapper
     def dir_deletion(self, request: Request) -> Response: #rmdir
         '''

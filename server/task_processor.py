@@ -18,8 +18,8 @@ class TaskProcessor:
         '''
         try:
             conn: rpyc.Connection = rpyc.connect(
-                tuple[0],
-                tuple[1],
+                slave[0],
+                slave[1],
                 config={"allow_public_attrs": True
             })
             if conn is None:

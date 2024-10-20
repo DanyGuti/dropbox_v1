@@ -86,8 +86,8 @@ class BaseServerService(IServerService):
         Set the client state path
         '''
         try:
-            if request.src_path in [self.client_path, ""]:
-                return False
+            # if request.src_path in [self.client_path, ""]:
+            #     return False
             # Getting the difference between the two paths
             diff_path: str = get_diff_path(request.src_path, self.client_path)
             # Update server_relative_path and normalize it

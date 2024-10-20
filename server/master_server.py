@@ -4,21 +4,22 @@ master server (coordinator)
 will have one replica server
 '''
 from typing import Callable
-import shutil
+import inspect
+# import shutil
 import os
 import sys
 import rpyc
 import rpyc.core
 import rpyc.core.protocol
 
-from server.base_service import BaseServerService
-from server.node_coordinator import NodeCoordinator
-
 from utils.custom_req_res import Response
 from utils.custom_req_res import Request
 from utils.helpers import SERVERS_IP
-from server.interfaces.master_server_interface import IMasterServerService
+
+from server.base_service import BaseServerService
+from server.node_coordinator import NodeCoordinator
 from server.interfaces.dropbox_interface import IDropBoxServiceV1
+from server.interfaces.master_server_interface import IMasterServerService
 from server.interfaces.server_interface import IServerService
 IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.203"
 
@@ -33,7 +34,7 @@ def apply_slave_distribution_wrapper(
     def wrapper(
         self: 'MasterServerService',
         req_client: Request,
-        chunk_size: int
+        chunk_size: int = 0
     ) -> (Response | Exception):
         try:
             result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
@@ -42,6 +43,11 @@ def apply_slave_distribution_wrapper(
             )
             if isinstance(result, Exception):
                 raise result
+            sig = inspect.signature(method)
+            if len(sig.parameters) == 3:  # method accepts three parameters
+                return method(self, req_client, chunk_size)
+            else:  # method accepts only two parameters
+                return method(self, req_client)
         except (ConnectionError, TimeoutError, ValueError) as e:
             print(f"Error distributing load: {e}")
             return e
@@ -78,13 +84,11 @@ class MasterServerService(
         with a client
         '''
         print("Goodbye client!", conn)
-        
     def update_self(self, request: Request) -> None:
         pass
     @rpyc.exposed
-    @BaseServerService.apply_set_client_dir_state_wrapper
     def set_client_path(self, cwd: str) -> None:
-        pass
+        return
     @rpyc.exposed
     @apply_slave_distribution_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> (Response | Exception):
