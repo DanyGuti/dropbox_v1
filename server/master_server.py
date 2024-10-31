@@ -6,7 +6,6 @@ will have one replica server
 from typing import Callable
 import inspect
 # import shutil
-import os
 import sys
 import rpyc
 import rpyc.core
@@ -15,12 +14,13 @@ import rpyc.core.protocol
 from utils.custom_req_res import Response
 from utils.custom_req_res import Request
 from utils.helpers import SERVERS_IP
+from utils.server_config import ServerConfig
 
-from server.base_service import BaseServerService
+from server.base_service import Service
 from server.node_coordinator import NodeCoordinator
 from server.interfaces.dropbox_interface import IDropBoxServiceV1
-from server.interfaces.master_server_interface import IMasterServerService
-from server.interfaces.server_interface import IServerService
+from server.interfaces.health_interface import IHealthService
+from server.init_service import InitService
 IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.203"
 
 def apply_slave_distribution_wrapper(
@@ -55,20 +55,21 @@ def apply_slave_distribution_wrapper(
 
 @rpyc.service
 class MasterServerService(
-    BaseServerService,
+    Service,
     IDropBoxServiceV1,
-    IServerService,
-    IMasterServerService,
     rpyc.Service
 ):
     '''
     Master server service class
     '''
     clients: dict[str, str] = {}
-    def __init__(self, coordinator: NodeCoordinator) -> None:
-        super().__init__()
+    def __init__(
+        self,
+        coordinator: NodeCoordinator,
+        health_service: IHealthService
+        ) -> None:
+        super().__init__(health_service=health_service)
         self.node_coordinator: NodeCoordinator = coordinator
-        self.server_relative_path: str = os.path.join(os.getcwd(), "..")
         self.set_server_id(1)
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -83,8 +84,6 @@ class MasterServerService(
         with a client
         '''
         print("Goodbye client!", conn)
-    def update_self(self, request: Request) -> None:
-        pass
     @rpyc.exposed
     def set_client_path(self, cwd: str) -> None:
         return
@@ -111,21 +110,20 @@ class MasterServerService(
 
 if __name__ == "__main__":
     try:
-        from rpyc.utils.server import ThreadedServer
         from rpyc.utils.server import UDPRegistryClient
-        node_coordinator: NodeCoordinator = NodeCoordinator()
-        t: ThreadedServer = ThreadedServer(
-            MasterServerService(coordinator=node_coordinator),
-            auto_register=True,
-            port=50082,
-            registrar=UDPRegistryClient(
-                SERVERS_IP,
-                50081
+        from rpyc.utils.server import ThreadedServer
+        InitService().create_master_service(
+            ServerConfig(
+                auto_register=True,
+                is_master=True,
+                port=50082,
+                registrar=UDPRegistryClient(
+                    SERVERS_IP,
+                    50081
+                ),
+                type=ThreadedServer
             )
         )
-        print("Master started on port 50082", t)
-        t.start()
-
     except (OSError, IOError) as e:
         print(f"Error: {e}")
         sys.exit(1)

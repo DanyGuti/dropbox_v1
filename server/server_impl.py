@@ -3,28 +3,38 @@ Server side of the dropbox application
 '''
 import shutil
 import os
-import sys
 
 import rpyc
 import rpyc.core
 import rpyc.core.protocol
-from server.base_service import BaseServerService
+
 from utils.custom_req_res import Response
 from utils.custom_req_res import Request
+from utils.server_config import ServerConfig
 from utils.helpers import get_diff_path, normalize_path, SERVERS_IP
+
+from server.init_service import InitService
+from server.base_service import Service
+from server.interfaces.health_interface import IHealthService
+from server.interfaces.client_service_interface import IClientServerService
+from server.interfaces.dropbox_interface import IDropBoxServiceV1
 
 @rpyc.service
 class DropbBoxV1Service(
-    BaseServerService,
+    IDropBoxServiceV1,
+    Service,
     rpyc.Service
 ):
     '''
     DropBox service
     '''
-    def __init__(self) -> None:
-        super().__init__()
-        self.server_relative_path: str = os.path.join(os.getcwd(), "..")
-        self.client_path: str = ""
+    def __init__(
+        self,
+        client_service: IClientServerService,
+        health_service: IHealthService
+        ) -> None:
+        super().__init__(health_service)
+        self.server_relative_path: str = client_service.get_server_relative_path()
 
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -39,9 +49,11 @@ class DropbBoxV1Service(
         with a client
         '''
         print("Goodbye client!", conn)
-
     @rpyc.exposed
-    @BaseServerService.apply_set_client_dir_state_wrapper
+    def set_client_path(self, cwd: str) -> None:
+        return
+    @rpyc.exposed
+    @IClientServerService.apply_set_client_dir_state_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> Response:
         '''
         upload a chunk of a file to the server
@@ -94,7 +106,7 @@ class DropbBoxV1Service(
         else:
             return Response(error="ActionError", message="Error: ", status_code=3)
     @rpyc.exposed
-    @BaseServerService.apply_set_client_dir_state_wrapper
+    @IClientServerService.apply_set_client_dir_state_wrapper
     def file_creation(self, request: Request) -> Response: #touch en principio hecho
         '''
         Create a file on the server
@@ -113,7 +125,7 @@ class DropbBoxV1Service(
             return Response(error=e, message=f'Error en action: {e}', status_code=13)
 
     @rpyc.exposed
-    @BaseServerService.apply_set_client_dir_state_wrapper
+    @IClientServerService.apply_set_client_dir_state_wrapper
     def file_deletion(self, request: Request) -> Response: #rm
         '''
         Delete a file on the server
@@ -133,7 +145,7 @@ class DropbBoxV1Service(
             print(f"Error: {e}")
             return Response(error=e, message="Error: ", status_code=13)
     @rpyc.exposed
-    @BaseServerService.apply_set_client_dir_state_wrapper
+    @IClientServerService.apply_set_client_dir_state_wrapper
     def dir_creation(self, request: Request) -> Response: #mkdir
         '''
         Create a directory on the server
@@ -151,7 +163,7 @@ class DropbBoxV1Service(
             print(f"Error: {e}")
             return Response(error=e, message="Error: ", status_code=13)
     @rpyc.exposed
-    @BaseServerService.apply_set_client_dir_state_wrapper
+    @IClientServerService.apply_set_client_dir_state_wrapper
     def dir_deletion(self, request: Request) -> Response: #rmdir
         '''
         Delete a directory on the server
@@ -168,32 +180,17 @@ class DropbBoxV1Service(
             return Response(error=e, message="Error: ", status_code=13)
 
 if __name__ == "__main__":
-    try:
-        DIR_NAME: str = "dropbox_genial_loli_app"
-        # Check if the directory exists
-        if not os.path.exists(DIR_NAME):
-            # If it doesn't exist, create it
-            os.mkdir(DIR_NAME)
-            print(f"Directory '{DIR_NAME}' created.")
-        # Change to the directory
-        os.chdir(DIR_NAME)
-        print(f"Changed to directory: {os.getcwd()}")
-        from rpyc.utils.server import ThreadedServer
-        from rpyc.utils.server import UDPRegistryClient
-        t: ThreadedServer = ThreadedServer(
-            DropbBoxV1Service,
+    from rpyc.utils.server import ThreadedServer
+    from rpyc.utils.server import UDPRegistryClient
+    InitService().create_slave_service(
+        ServerConfig(
             auto_register=True,
+            is_master=False,
             port=50083,
-            registrar=UDPRegistryClient(SERVERS_IP, 50081)
+            registrar=UDPRegistryClient(
+                SERVERS_IP,
+                50081
+            ),
+            type=ThreadedServer
         )
-        print(t)
-        t.start()
-    except (OSError, IOError) as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        print("Exiting...")
-        sys.exit(0)
-    finally:
-        print("Exiting...")
-        sys.exit(0)
+    )

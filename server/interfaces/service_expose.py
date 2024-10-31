@@ -1,16 +1,13 @@
 '''
-This file contains the interface for the Master Server service.
+This file contains the interface for exposing the service
 '''
-
 from abc import ABC, abstractmethod
 import rpyc
-from utils.custom_req_res import Request, Response
 
-class IMasterServerService(ABC):
+class IServiceExposed(ABC):
     '''
-    Interface for the Master Server service
+    Interface for the service exposed
     '''
-    clients: dict[str, str] = {}
     @abstractmethod
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -20,9 +17,4 @@ class IMasterServerService(ABC):
     def on_disconnect(self, conn: rpyc.Connection) -> None:
         '''
         Method to be called when a connection is closed
-        '''
-    @abstractmethod
-    def update_self(self, request: Request) -> (Response | Exception):
-        '''
-        Update the master server
         '''
