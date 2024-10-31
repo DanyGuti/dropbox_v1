@@ -10,8 +10,8 @@ import rpyc
 from rpyc.utils.registry import UDPRegistryClient
 from rpyc.utils.factory import discover
 from utils.custom_req_res import Request, Response
+from utils.helpers import SERVERS_IP
 from server.interfaces.dropbox_interface import IDropBoxServiceV1
-IP_ADDRESS_SERVER: str = "158.227.124.203"
 
 class Client():
     '''
@@ -48,7 +48,7 @@ class Client():
             # ).root.talk_to_slave(self.request)
             # print(talk_to_master)
             # registry: (list[tuple]) = rpyc.discover("DROPBBOXV1")  # Discover the registry server
-            registry = UDPRegistryClient(ip="158.227.127.19", port=50082)  # Discover the registry server
+            registry = UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
             print(registry)
             discovered_services = discover("MASTERSERVER", registrar=registry)
             print(discovered_services)

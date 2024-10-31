@@ -51,7 +51,6 @@ def apply_slave_distribution_wrapper(
         except (ConnectionError, TimeoutError, ValueError) as e:
             print(f"Error distributing load: {e}")
             return e
-        return method(self, req_client, chunk_size)
     return wrapper
 
 @rpyc.service

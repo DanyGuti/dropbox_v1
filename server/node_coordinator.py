@@ -15,9 +15,7 @@ class NodeCoordinator(TaskProcessor):
         super().__init__()
         self.slaves: list[DropbBoxV1Service] = []
         self.slave_connections: dict[tuple, rpyc.Connection] = {}
-        self.servers_health: list[str] = []
         self.slaves_health: list[float] = []
-        self.leader: tuple = ()
     def distribute_load_slaves(self, request: Request, chunk: int) -> (Response | Exception):
         '''
         Distribute the load
@@ -41,16 +39,4 @@ class NodeCoordinator(TaskProcessor):
     def set_slaves(self, slaves: list[DropbBoxV1Service]) -> None:
         '''
         Set the list of slaves
-        '''
-    def set_leader(self, leader: tuple) -> None:
-        '''
-        Set the leader
-        '''
-    def get_leader(self) -> (tuple):
-        '''
-        Get the leader
-        '''
-    def elect_leader(self) -> (tuple):
-        '''
-        Elect the leader
         '''
