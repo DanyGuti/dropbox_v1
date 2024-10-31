@@ -2,7 +2,7 @@
 Start the connection exposed by the service
 '''
 import rpyc
-from server.interfaces.service_expose import IServiceExposed
+from server.interfaces.init_interfaces.service_expose_interface import IServiceExposed
 class ServiceExpose(IServiceExposed):
     '''
     Service exposed class

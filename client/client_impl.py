@@ -10,8 +10,8 @@ import rpyc
 from rpyc.utils.registry import UDPRegistryClient
 from rpyc.utils.factory import discover
 from utils.custom_req_res import Request, Response
-from utils.helpers import SERVERS_IP
-from server.interfaces.dropbox_interface import IDropBoxServiceV1
+from utils.server.helpers import SERVERS_IP
+from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 
 class Client():
     '''

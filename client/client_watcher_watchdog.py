@@ -15,14 +15,14 @@ from watchdog.events import FileSystemEvent, \
 
 # Import client from same directory
 from client.client_impl import Client
+from client.system_event_handler import SystemEventHandler
 from utils.custom_req_res import Request
 from utils.task import Task
-from client.system_event_handler import SystemEventHandler
 
 # Get the directory of the current file
-current_dir = os.path.dirname(os.path.abspath(__file__))
+current_dir: str = os.path.dirname(os.path.abspath(__file__))
 # Move two directories up
-CWD = os.path.normpath(os.path.join(current_dir, ".."))
+CWD: str = os.path.normpath(os.path.join(current_dir, ".."))
 # Grab the events from local system and send to server via rpyc (RPCs)
 class ClientWatcher(Client, SystemEventHandler):
     '''
@@ -173,18 +173,3 @@ class ClientWatcher(Client, SystemEventHandler):
                     print("No event to process recognized")
                     continue
 
-if __name__ == "__main__":
-    client: Client = Client()
-    client.start_connection(CWD)
-    try:
-        if client.conn:
-            client_watcher: ClientWatcher = ClientWatcher(client_instance=client)
-            client_watcher.start_watching()
-    except KeyboardInterrupt:
-        client.close_connection()
-    except EOFError:
-        client.close_connection()
-    except (ConnectionError, OSError) as e:
-        client.handle_error(e)
-    finally:
-        client.close_connection()

@@ -7,18 +7,23 @@ import sys
 from rpyc.utils.server import ThreadedServer
 from rpyc.utils.server import ForkingServer
 
-from utils.server_config import ServerConfig
+from utils.server.server_config import ServerConfig
 
-from server.interfaces.i_init_service_interface import IInitService
-from server.node_coordinator import NodeCoordinator
-from server.master_server import MasterServerService
-from server.server_impl import DropbBoxV1Service
+from server.build.factories.factory import FactoryServices
+from server.interfaces.common.health_interface import IHealthService
+from server.interfaces.init_interfaces.init_service_interface import IInitService
+from server.interfaces.init_interfaces.client_service_interface import IClientServerService
+from server.services.master.node_coordinator import NodeCoordinator
+from server.services.master.master_server import MasterServerService
+from server.services.slave.server_impl import DropbBoxV1Service
 DIR_NAME: str = "dropbox_genial_loli_app"
 
 class InitService(IInitService):
     '''
     Init service class
     '''
+    def __init__(self) -> None:
+        self.factory: FactoryServices = FactoryServices()
     def create_service(self, config: ServerConfig) -> None:
         if config.is_master:
             self.create_master_service(config)
@@ -41,17 +46,16 @@ class InitService(IInitService):
         except KeyboardInterrupt:
             print("Exiting...")
             sys.exit(0)
-        finally:
-            print("Exiting...")
-            sys.exit(0)
     def create_slave_service(self, config: ServerConfig) -> None:
         '''
         Create the slave service
         '''
         try:
+            client_service: IClientServerService = self.factory.create_client_service()
+            health_service: IHealthService  = self.factory.create_health_service()
             server_impl: DropbBoxV1Service = DropbBoxV1Service(
-                client_service=None,
-                health_service=None
+                client_service=client_service,
+                health_service=health_service
             )
             # Check if the directory exists
             if not os.path.exists(DIR_NAME):
@@ -66,9 +70,6 @@ class InitService(IInitService):
             print(f"Error: {e}")
             sys.exit(1)
         except KeyboardInterrupt:
-            print("Exiting...")
-            sys.exit(0)
-        finally:
             print("Exiting...")
             sys.exit(0)
     def start_server(

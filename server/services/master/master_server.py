@@ -6,21 +6,17 @@ will have one replica server
 from typing import Callable
 import inspect
 # import shutil
-import sys
 import rpyc
 import rpyc.core
 import rpyc.core.protocol
 
 from utils.custom_req_res import Response
 from utils.custom_req_res import Request
-from utils.helpers import SERVERS_IP
-from utils.server_config import ServerConfig
 
-from server.base_service import Service
-from server.node_coordinator import NodeCoordinator
-from server.interfaces.dropbox_interface import IDropBoxServiceV1
-from server.interfaces.health_interface import IHealthService
-from server.init_service import InitService
+from server.services.base.base_service import Service
+from server.services.master.node_coordinator import NodeCoordinator
+from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
+from server.interfaces.common.health_interface import IHealthService
 IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.203"
 
 def apply_slave_distribution_wrapper(
@@ -107,29 +103,3 @@ class MasterServerService(
     @apply_slave_distribution_wrapper
     def dir_deletion(self, request: Request) -> (Response | Exception):
         pass
-
-if __name__ == "__main__":
-    try:
-        from rpyc.utils.server import UDPRegistryClient
-        from rpyc.utils.server import ThreadedServer
-        InitService().create_master_service(
-            ServerConfig(
-                auto_register=True,
-                is_master=True,
-                port=50082,
-                registrar=UDPRegistryClient(
-                    SERVERS_IP,
-                    50081
-                ),
-                type=ThreadedServer
-            )
-        )
-    except (OSError, IOError) as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    except KeyboardInterrupt as e:
-        print("Exiting...", e)
-        sys.exit(0)
-    # finally:
-    #     print("Exiting...")
-    #     sys.exit(0)

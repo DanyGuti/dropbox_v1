@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from rpyc.utils.server import ThreadedServer
 from rpyc.utils.server import ForkingServer
 
-from utils.server_config import ServerConfig
-from server.master_server import MasterServerService
-from server.server_impl import DropbBoxV1Service
+from utils.server.server_config import ServerConfig
+from server.services.master.master_server import MasterServerService
+from server.services.slave.server_impl import DropbBoxV1Service
 
 class IInitService(ABC):
     '''

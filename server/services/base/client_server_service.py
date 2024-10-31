@@ -4,7 +4,7 @@ Module for the client_server_service
 import os
 from typing import Callable
 
-from server.interfaces.client_service_interface import IClientServerService
+from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 from utils.custom_req_res import Request
 
 def get_diff_path(path: str, client_path: str) -> str:
@@ -25,8 +25,8 @@ class ClientServerService(IClientServerService):
     def __init__(self) -> None:
         self.client_path: str = ""
         self.server_relative_path: str = os.path.join(os.getcwd(), "..")
+    @staticmethod
     def apply_set_client_dir_state_wrapper(
-        self,
         method: Callable[['ClientServerService',
         Request], (bool | Exception)],
     ) -> (bool | Exception):

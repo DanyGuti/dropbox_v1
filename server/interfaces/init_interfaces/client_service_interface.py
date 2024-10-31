@@ -7,11 +7,11 @@ from utils.custom_req_res import Request
 
 class IClientServerService(ABC):
     '''
-    Interface for the Health service
+    Interface for the client-server service
     '''
+    @staticmethod
     @abstractmethod
     def apply_set_client_dir_state_wrapper(
-        self,
         method: Callable[['IClientServerService',
         Request], (bool | Exception)],
     ) -> (bool | Exception):

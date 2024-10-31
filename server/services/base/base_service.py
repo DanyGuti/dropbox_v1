@@ -1,7 +1,7 @@
 '''
 This module provides the base server service
 '''
-from server.interfaces.health_interface import IHealthService
+from server.interfaces.common.health_interface import IHealthService
 
 class Service():
     '''
