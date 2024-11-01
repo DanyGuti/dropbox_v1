@@ -18,9 +18,6 @@ from rpyc.utils.registry import UDPRegistryClient # pylint: disable=unused-impor
 from rpyc.utils.factory import discover # pylint: disable=unused-import
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1 # pylint: disable=unused-import
 
-from client.client_impl import Client # pylint: disable=unused-import
-from client.client_watcher_watchdog import ClientWatcher # pylint: disable=unused-import
-from client.system_event_handler import SystemEventHandler # pylint: disable=unused-import
 from utils.custom_req_res import Request, Response # pylint: disable=unused-import
 from utils.server.helpers import SERVERS_IP # pylint: disable=unused-import
 from utils.task import Task # pylint: disable=unused-import

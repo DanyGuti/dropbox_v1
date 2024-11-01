@@ -9,9 +9,9 @@ from client.imports.import_base import Observer, FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
 
-from client.imports.import_base import Client
+from client.client_impl import Client
+from client.system_event_handler import SystemEventHandler
 from client.imports.import_base import Request, Task
-from client.imports.import_base import SystemEventHandler
 
 # Get the directory of the current file
 current_dir: str = os.path.dirname(os.path.abspath(__file__))

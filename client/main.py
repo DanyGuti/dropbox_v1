@@ -2,7 +2,8 @@
 Module containing main function for the client
 '''
 from client.imports.import_base import os
-from client.imports.import_base import Client, ClientWatcher
+from client.client_impl import Client
+from client.client_watcher_watchdog import ClientWatcher
 
 current_dir: str = os.path.dirname(os.path.abspath(__file__))
 # Get the directory of the current file
