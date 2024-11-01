@@ -1,7 +1,7 @@
 '''
 This module contains the SystemEventHandler class.
 '''
-from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from client.imports.import_base import FileSystemEvent, FileSystemEventHandler
 
 class SystemEventHandler(FileSystemEventHandler):
     '''

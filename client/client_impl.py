@@ -2,16 +2,9 @@
 Client class to interact with the server
 inherits from ClientWatcher
 '''
-import os
-import queue
-from typing import Optional
-import threading
-import rpyc
-from rpyc.utils.registry import UDPRegistryClient
-from rpyc.utils.factory import discover
-from utils.custom_req_res import Request, Response
-from utils.server.helpers import SERVERS_IP
-from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
+from client.imports.import_base import os, queue, Optional,\
+    threading, rpyc, UDPRegistryClient,\
+        discover, Request, Response, SERVERS_IP, IDropBoxServiceV1
 
 class Client():
     '''

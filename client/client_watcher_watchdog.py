@@ -3,21 +3,15 @@ ClientWatcher class to watch for system events
 child class of Client
 '''
 
-import os
-import re
-import time
-import threading
+from client.imports.import_base import os, re, time, threading
 
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEvent, \
+from client.imports.import_base import Observer, FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
 
-# Import client from same directory
-from client.client_impl import Client
-from client.system_event_handler import SystemEventHandler
-from utils.custom_req_res import Request
-from utils.task import Task
+from client.imports.import_base import Client
+from client.imports.import_base import Request, Task
+from client.imports.import_base import SystemEventHandler
 
 # Get the directory of the current file
 current_dir: str = os.path.dirname(os.path.abspath(__file__))
