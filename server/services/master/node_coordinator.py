@@ -1,11 +1,10 @@
 '''
 Node coordinator module
 '''
-import rpyc
+from server.imports.import_server_base import rpyc, Request, Response\
+    , SERVERS_IP, SLAVE_SERVER_PORT
 from server.services.slave.server_impl import DropbBoxV1Service
 from server.services.master.task_processor import TaskProcessor
-from utils.server.helpers import SERVERS_IP, SLAVE_SERVER_PORT
-from utils.custom_req_res import Request, Response
 
 class NodeCoordinator(TaskProcessor):
     '''

@@ -1,10 +1,8 @@
 '''
 This file contains the interface for the DropBox service.
 '''
-
-from abc import ABC, abstractmethod
-import rpyc
-from utils.custom_req_res import Request, Response
+from server.imports.import_server_base import ABC\
+    , abstractmethod, rpyc, Request, Response
 
 class IDropBoxServiceV1(ABC):
     '''

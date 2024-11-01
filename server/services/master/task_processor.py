@@ -1,8 +1,7 @@
 '''
 Task Processor module
 '''
-import rpyc
-from utils.custom_req_res import Request, Response
+from server.imports.import_server_base import Request, Response, rpyc
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 
 class TaskProcessor:

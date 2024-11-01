@@ -1,7 +1,7 @@
 '''
 Start the connection exposed by the service
 '''
-import rpyc
+from server.imports.import_server_base import rpyc
 from server.interfaces.init_interfaces.service_expose_interface import IServiceExposed
 class ServiceExpose(IServiceExposed):
     '''

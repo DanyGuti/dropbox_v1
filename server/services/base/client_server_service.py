@@ -1,11 +1,9 @@
 '''
 Module for the client_server_service
 '''
-import os
-from typing import Callable
 
+from server.imports.import_server_base import os, Request, Callable
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
-from utils.custom_req_res import Request
 
 def get_diff_path(path: str, client_path: str) -> str:
     '''

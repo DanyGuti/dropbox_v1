@@ -1,8 +1,7 @@
 '''
 This file contains the interface for exposing the service
 '''
-from abc import ABC, abstractmethod
-import rpyc
+from server.imports.import_server_base import ABC, abstractmethod, rpyc
 
 class IServiceExposed(ABC):
     '''

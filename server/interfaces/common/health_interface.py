@@ -1,7 +1,7 @@
 '''
 This file contains the interface for the Health service
 '''
-from abc import ABC, abstractmethod
+from server.imports.import_server_base import ABC, abstractmethod
 
 class IHealthService(ABC):
     '''

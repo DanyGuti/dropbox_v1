@@ -1,12 +1,9 @@
 '''
 This file contains the interface for the Init service.
 '''
+from server.imports.import_server_base import ABC, abstractmethod,\
+    ForkingServer, ThreadedServer, ServerConfig
 
-from abc import ABC, abstractmethod
-from rpyc.utils.server import ThreadedServer
-from rpyc.utils.server import ForkingServer
-
-from utils.server.server_config import ServerConfig
 from server.services.master.master_server import MasterServerService
 from server.services.slave.server_impl import DropbBoxV1Service
 

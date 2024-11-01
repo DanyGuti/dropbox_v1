@@ -1,9 +1,8 @@
 '''
 This file contains the interface for the client-server service
 '''
-from abc import ABC, abstractmethod
-from typing import Callable
-from utils.custom_req_res import Request
+from server.imports.import_server_base import Callable,\
+    Request, ABC, abstractmethod
 
 class IClientServerService(ABC):
     '''
