@@ -24,7 +24,18 @@ class NodeCoordinator(TaskProcessor):
             return self.dispatch_req_slave(
                 request,
                 slave=(SERVERS_IP, SLAVE_SERVER_PORT),
-                chunk=chunk
+                chunk=chunk,
+            )
+        except Exception as e:
+            return e
+    def set_client_path(self, cwd: str) -> None:
+        '''
+        Set the client path
+        '''
+        try:
+            return self.disptach_set_client_path(
+                cwd=cwd,
+                slave=(SERVERS_IP, SLAVE_SERVER_PORT),
             )
         except Exception as e:
             return e

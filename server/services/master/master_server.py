@@ -6,6 +6,7 @@ will have one replica server
 from typing import Callable
 import inspect
 # import shutil
+import os
 import rpyc
 import rpyc.core
 import rpyc.core.protocol
@@ -17,7 +18,7 @@ from server.services.base.base_service import Service
 from server.services.master.node_coordinator import NodeCoordinator
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 from server.interfaces.common.health_interface import IHealthService
-IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.203"
+IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.92"
 
 def apply_slave_distribution_wrapper(
     method: Callable[['MasterServerService', Request, int],
@@ -66,6 +67,7 @@ class MasterServerService(
         ) -> None:
         super().__init__(health_service=health_service)
         self.node_coordinator: NodeCoordinator = coordinator
+        self.server_relative_path: str = os.path.join(os.getcwd())
         self.set_server_id(1)
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -82,7 +84,7 @@ class MasterServerService(
         print("Goodbye client!", conn)
     @rpyc.exposed
     def set_client_path(self, cwd: str) -> None:
-        return
+        return self.node_coordinator.set_client_path(cwd)
     @rpyc.exposed
     @apply_slave_distribution_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> (Response | Exception):

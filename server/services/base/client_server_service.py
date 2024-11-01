@@ -24,7 +24,7 @@ class ClientServerService(IClientServerService):
     '''
     def __init__(self) -> None:
         self.client_path: str = ""
-        self.server_relative_path: str = os.path.join(os.getcwd(), "..")
+        self.server_relative_path: str = os.path.join(os.getcwd() + "/dropbox_genial_loli_app")
     @staticmethod
     def apply_set_client_dir_state_wrapper(
         method: Callable[['ClientServerService',
@@ -39,7 +39,7 @@ class ClientServerService(IClientServerService):
             **kwargs: dict[str, any]
         ) -> (bool | Exception):
             req_client: Request = args[0]
-            result = self.set_client_state_path(req_client)
+            result = self.client_service.set_client_state_path(req_client)
             if result is False:
                 print(f"Failed to set client state path: {result}")
                 return result  # Exit early if setting client path fails
@@ -73,7 +73,7 @@ class ClientServerService(IClientServerService):
 
             # Check if the updated path exists
             print(f"Checking existence of path: {self.server_relative_path}")
-            if request.action not in ['file_created', 'modified', 'touch', 'cp', 'created', 'mv']:
+            if request.action not in ['file_created', 'modified', 'touch', 'cp', 'created', 'mv', 'mkdir']:
                 if not os.path.exists(self.server_relative_path):
                     print(self.server_relative_path)
                     print(f"Something went wrong: the parent directory\
