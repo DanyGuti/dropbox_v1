@@ -8,6 +8,7 @@ from server.build.factories.factory import FactoryServices
 from server.interfaces.common.health_interface import IHealthService
 from server.interfaces.init_interfaces.init_service_interface import IInitService
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
+from server.interfaces.local_fms_interface import IFileManagementService
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.master.master_server import MasterServerService
 from server.services.slave.server_impl import DropbBoxV1Service
@@ -47,9 +48,12 @@ class InitService(IInitService):
         '''
         try:
             client_service: IClientServerService = self.factory.create_client_service()
+            file_management_service: IFileManagementService = \
+                self.factory.create_file_management_service()
             health_service: IHealthService  = self.factory.create_health_service()
             server_impl: DropbBoxV1Service = DropbBoxV1Service(
                 client_service=client_service,
+                file_management_service=file_management_service,
                 health_service=health_service
             )
             # Check if the directory exists

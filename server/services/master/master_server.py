@@ -36,8 +36,7 @@ def apply_slave_distribution_wrapper(
             sig = inspect.signature(method)
             if len(sig.parameters) == 3:  # method accepts three parameters
                 return method(self, req_client, chunk_size)
-            else:  # method accepts only two parameters
-                return method(self, req_client)
+            return method(self, req_client)
         except (ConnectionError, TimeoutError, ValueError) as e:
             print(f"Error distributing load: {e}")
             return e
