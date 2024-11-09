@@ -13,7 +13,7 @@ def main() -> None:
     '''
     Main function
     '''
-    client: Client = Client()
+    client: Client = Client("Guty")
     client.start_connection(CWD)
     try:
         if client.conn:

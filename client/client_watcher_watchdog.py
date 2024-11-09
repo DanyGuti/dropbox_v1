@@ -30,7 +30,7 @@ class ClientWatcher(Client, SystemEventHandler):
         lock: threading.Lock
     '''
     def __init__(self, client_instance: Client) -> None:
-        super().__init__()  # Initialize the parent class (Client)
+        super().__init__(user=client_instance.user) # Initialize the parent class with the user
         self.client: Client = client_instance
         self._dispatcher: list = []
         self.last_event_time: time = time.time()  # Track the time of the last event
@@ -80,7 +80,7 @@ class ClientWatcher(Client, SystemEventHandler):
             destination_path=dst,
             file_name=file,
             is_directory=is_dir,
-            task=Task(1, 1, time.time()),
+            task=Task(1, 1, time.time(), self.user),
             time_of_request=time.time(),
             src_path=path
             )

@@ -53,9 +53,9 @@ class MasterServerService(
     '''
     clients: dict[str, str] = {}
     def __init__(
-        self,
-        coordinator: NodeCoordinator,
-        health_service: IHealthService
+            self,
+            coordinator: NodeCoordinator,
+            health_service: IHealthService
         ) -> None:
         super().__init__(health_service=health_service)
         self.node_coordinator: NodeCoordinator = coordinator
@@ -75,8 +75,8 @@ class MasterServerService(
         '''
         print("Goodbye client!", conn)
     @rpyc.exposed
-    def set_client_path(self, cwd: str) -> None:
-        return self.node_coordinator.set_client_path(cwd)
+    def set_client_path(self, cwd: str, user: str) -> None:
+        return self.node_coordinator.set_client_path(cwd, user)
     @rpyc.exposed
     @apply_slave_distribution_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> (Response | Exception):

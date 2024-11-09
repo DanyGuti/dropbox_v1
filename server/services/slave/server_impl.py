@@ -21,9 +21,9 @@ class DropbBoxV1Service(
     '''
     def __init__(
         self,
-        client_service: IClientServerService,
-        file_management_service: IFileManagementService,
-        health_service: IHealthService
+            client_service: IClientServerService,
+            file_management_service: IFileManagementService,
+            health_service: IHealthService
         ) -> None:
         super().__init__(health_service)
         self.client_service: IClientServerService = client_service
@@ -45,8 +45,8 @@ class DropbBoxV1Service(
         '''
         print("Goodbye client!", conn)
     @rpyc.exposed
-    def set_client_path(self, cwd: str) -> None:
-        self.client_service.set_client_path(cwd)
+    def set_client_path(self, cwd: str, user: str) -> None:
+        self.client_service.set_client_path(cwd, user)
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> Response:

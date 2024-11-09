@@ -22,6 +22,7 @@ class ClientServerService(IClientServerService):
     '''
     def __init__(self) -> None:
         self.client_path: str = ""
+        self.clients_paths: dict[str, str] = {}
         self.server_relative_path: str = os.path.join(os.getcwd() + "/dropbox_genial_loli_app")
     @staticmethod
     def apply_set_client_dir_state_wrapper(
@@ -43,11 +44,13 @@ class ClientServerService(IClientServerService):
                 return result  # Exit early if setting client path fails
             return method(self, *args, **kwargs)
         return wrapper
-    def set_client_path(self, cwd: str) -> str:
+    def set_client_path(self, cwd: str, user: str) -> str:
         '''
         Set the client path when the connection is established
         '''
         self.client_path = cwd
+        # Set the clients paths
+        self.clients_paths[user] = cwd
         return self.client_path
     def get_client_path(self) -> str:
         '''
@@ -59,19 +62,33 @@ class ClientServerService(IClientServerService):
         Set the client state path
         '''
         try:
+            if request.task.user not in self.clients_paths:
+                return False
             # if request.src_path in [self.client_path, ""]:
             #     return False
             # Getting the difference between the two paths
-            diff_path: str = get_diff_path(request.src_path, self.client_path)
+            diff_path: str = get_diff_path(
+                request.src_path,
+                self.clients_paths[request.task.user]
+            )
             # Update server_relative_path and normalize it
             new_relative_path: str = os.path.join(self.server_relative_path, diff_path)
             # Remove the '..' from the path, if any
             self.server_relative_path: str = normalize_path(new_relative_path)
+            # Update the client path
             self.client_path: str = request.src_path
-
+            self.clients_paths[request.task.user] = request.src_path
             # Check if the updated path exists
             print(f"Checking existence of path: {self.server_relative_path}")
-            if request.action not in ['file_created', 'modified', 'touch', 'cp', 'created', 'mv', 'mkdir']:
+            if request.action not in [
+                'file_created',
+                'modified',
+                'touch',
+                'cp',
+                'created',
+                'mv',
+                'mkdir'
+            ]:
                 if not os.path.exists(self.server_relative_path):
                     print(self.server_relative_path)
                     print(f"Something went wrong: the parent directory\
