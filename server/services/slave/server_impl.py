@@ -58,6 +58,7 @@ class DropbBoxV1Service(
         self.server_relative_path: str = self.client_service.get_server_relative_path()
         if request.action in ['file_created', 'modified', 'touch', 'cp', 'created']:
             return self.file_management_service.write_chunk_no_mv(
+                request.file_name,
                 self.server_relative_path,
                 chunk,
                 request.action
