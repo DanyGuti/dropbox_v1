@@ -9,7 +9,7 @@ import threading
 import rpyc
 from custom_req_res import Request, Response
 from dropbox_interface import IDropBoxServiceV1
-IP_ADDRESS_SERVER: str = "158.227.127.16"
+IP_ADDRESS_SERVER: str = "158.227.126.244"
 
 class Client():
     '''

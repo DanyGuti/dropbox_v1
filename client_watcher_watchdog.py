@@ -20,7 +20,7 @@ from system_event_handler import SystemEventHandler
 CWD: str = os.path.dirname(os.path.abspath(__file__))
 
 # Grab the events from local system and send to server via rpyc (RPCs)
-class ClientWatcher(Client, SystemEventHandler):
+class ClientWatcher(Client, SystemEventHandler): # type: ignore
     '''
     ClientWatcher class to watch for system events
     and send them to the server
@@ -45,7 +45,7 @@ class ClientWatcher(Client, SystemEventHandler):
         Event handler for any file system event
         '''
         super().on_any_event(event)
-        if not '__pycache__' in event.src_path:
+        if not '__pycache__' in event.src_path or not re.match(r"^.*\.swp$", event.src_path):
             with self.lock:
                 self._dispatcher.append(event)
     # Start watching with observer
@@ -162,6 +162,10 @@ class ClientWatcher(Client, SystemEventHandler):
                         accum_events.clear() # Deleted a directory
                         file_name: str = self.construct_curr_path(event.src_path)
                         self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
+                elif ((len(accum_events) == 5) and (isinstance(event, FileCreatedEvent))):
+                    accum_events.clear()
+                    file_name: str = self.construct_curr_path(event.src_path)
+                    self.send_to_client(event.src_path, 'touch', file_name)
                 else:
                     accum_events.clear()
                     print("No event to process recognized")

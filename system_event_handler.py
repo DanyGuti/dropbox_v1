@@ -1,7 +1,9 @@
 '''
 This module contains the SystemEventHandler class.
 '''
+import re
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
+SWP_REGEX_FILE_PATTERN = r"^.*\.swp$"
 
 class SystemEventHandler(FileSystemEventHandler):
     '''
@@ -13,6 +15,6 @@ class SystemEventHandler(FileSystemEventHandler):
         Event handler for any file system event
         '''
         # Ignore __pycache__
-        if '__pycache__' in event.src_path:
+        if '__pycache__' in event.src_path or re.match(SWP_REGEX_FILE_PATTERN, event.src_path):
             return # Ignore this event if __pycache__ is in the path
         return event
