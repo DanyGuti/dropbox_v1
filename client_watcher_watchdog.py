@@ -11,11 +11,13 @@ import threading
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
-    FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
+    FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent, FileClosedEvent
 
 from client import Client
 from custom_req_res import Request
 from system_event_handler import SystemEventHandler
+
+swp_file_pattern = r"^.*\.swp$"
 
 CWD: str = os.path.dirname(os.path.abspath(__file__))
 
@@ -36,7 +38,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         self.client: Client = client_instance
         self._dispatcher: list = []
         self.last_event_time: time = time.time()  # Track the time of the last event
-        self.accumulation_timeout: float = 0.25
+        self.accumulation_timeout: float = 0.50
         self.lock: threading.Lock = threading.Lock()
         # self.root_path_stack: list = re.split(r'(\/)', CWD)
     # Call the parent class
@@ -45,7 +47,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         Event handler for any file system event
         '''
         super().on_any_event(event)
-        if not '__pycache__' in event.src_path or not re.match(r"^.*\.swp$", event.src_path):
+        if not '__pycache__' in event.src_path or not re.match(swp_file_pattern, event.src_path):
             with self.lock:
                 self._dispatcher.append(event)
     # Start watching with observer
@@ -105,6 +107,9 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
             while len(self._dispatcher) > 0:
                 curr_event: FileSystemEvent = self._dispatcher.pop(0)
                 accum_events.append(curr_event)
+            if(any (re.match(swp_file_pattern , e.src_path) for e in accum_events)):
+                accum_events = list(filter(lambda e : not re.match(swp_file_pattern , e.src_path), accum_events))
+                print(accum_events)
             while len(accum_events) > 0:
                 event: FileSystemEvent = accum_events[0]
                 if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent)):
@@ -112,6 +117,9 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                     file_name: str = self.construct_curr_path(file_event.src_path)
                     accum_events.clear() # cp a file
                     self.send_to_client(event.src_path, 'cp', file_name)
+                elif((len(accum_events) == 2) and isinstance(accum_events[0],DirModifiedEvent) and isinstance(accum_events[1],DirModifiedEvent)):
+                    print("Ha entrado")
+                    accum_events.clear()
                 elif ((len (accum_events) == 3)
                         and ((str(event.event_type) == 'modified')
                             or (str(event.event_type) == 'created'))
@@ -123,12 +131,19 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                 elif (isinstance(event, FileMovedEvent) or\
                     (len(accum_events) >= 5 and all(isinstance(e, (FileMovedEvent, FileDeletedEvent, FileModifiedEvent, DirModifiedEvent)) for e in accum_events)) or
                     (len(accum_events) == 3 and all(isinstance(e, (FileModifiedEvent, FileMovedEvent, DirModifiedEvent)) for e in accum_events))):
+                    if(all(isinstance(e, (DirModifiedEvent)) for e in accum_events)):
+                        accum_events.clear()
+                        return 
                     moved_event = next((e for e in accum_events if isinstance(e, FileMovedEvent)), None)
                     accum_events.clear() # mv a file
                     # file_name: str = self.construct_curr_path(event.src_path)
                     file_dest : list = re.split(r'(\/)', moved_event.dest_path)
                     print("mv a file")
                     self.send_to_client(moved_event.src_path, 'mv', file_dest[-1], moved_event.dest_path)
+                elif (len(accum_events) >= 5 and all(isinstance(e, (FileModifiedEvent,  FileModifiedEvent, FileClosedEvent, DirModifiedEvent, DirModifiedEvent)) for e in accum_events)):
+                    accum_events.clear() # Modified a file
+                    file_name: str = self.construct_curr_path(event.src_path)
+                    self.send_to_client(event.src_path, 'modified', file_name)
                 elif ((len(accum_events) == 1) or (len(accum_events) == 2)
                         and not (any(isinstance(e, (DirCreatedEvent)) for e in accum_events))
                         and not (any(isinstance(e, (FileDeletedEvent)) for e in accum_events))
@@ -162,14 +177,22 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                         accum_events.clear() # Deleted a directory
                         file_name: str = self.construct_curr_path(event.src_path)
                         self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
-                elif ((len(accum_events) == 5) and (isinstance(event, FileCreatedEvent))):
-                    accum_events.clear()
+                elif((len(accum_events) == 5)
+                        and (isinstance(event, FileCreatedEvent))):
+                        accum_events.clear()
+                        file_name: str = self.construct_curr_path(event.src_path)
+                        self.send_to_client(event.src_path, 'touch', file_name)
+                
+                elif((len(accum_events) == 6) and any(isinstance(e, (FileModifiedEvent)) for e in accum_events)):
+                    accum_events.clear() # Modified a file
                     file_name: str = self.construct_curr_path(event.src_path)
-                    self.send_to_client(event.src_path, 'touch', file_name)
+                    self.send_to_client(event.src_path, 'modified', file_name)
                 else:
+                    print(accum_events)
                     accum_events.clear()
                     print("No event to process recognized")
                     continue
+               
 
 if __name__ == "__main__":
     client: Client = Client()
