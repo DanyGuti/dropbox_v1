@@ -22,7 +22,7 @@ swp_file_pattern = r"^.*\.swp$"
 CWD: str = os.path.dirname(os.path.abspath(__file__))
 
 # Grab the events from local system and send to server via rpyc (RPCs)
-class ClientWatcher(Client, SystemEventHandler):
+class ClientWatcher(Client, SystemEventHandler): # type: ignore
     '''
     ClientWatcher class to watch for system events
     and send them to the server
