@@ -67,6 +67,7 @@ class MasterServerService(
         super().__init__(health_service=health_service)
         self.node_coordinator: NodeCoordinator = coordinator
         self.server_relative_path: str = os.path.join(os.getcwd())
+        self.sequence_events = []
         self.set_server_id(1)
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
