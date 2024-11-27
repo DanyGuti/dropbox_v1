@@ -107,26 +107,21 @@ class Client():
         '''
         Upload a chunk of a file to the server
         '''
-        while True:
-            try:
-                current_request: Request = self.requests[0]
-                print(f"Uploading chunk of size {len(chunk)} bytes...")
-                response: Response = self.service.upload_chunk(self.request, chunk)
-                with self.lock:  # Ensure thread-safe access to the queue
-                    self.response_queue.put(response)
-                    self.process_responses()
-            except (KeyboardInterrupt, SystemExit):
-                print("Exiting...")
-                self.conn.close()
-            except  EOFError("stream has been closed"):
-                print("Connection to the server lost.")
-                self.retry_connection()
-                # PROCESS request again
-            except EOFError("connection closed by peer"):
-                print("Connection closed by the master node.")
-                self.retry_connection()
-            except (OSError) as e: # Acknowledge failure
-                self.handle_error(e)
+        try:
+            current_request: Request = self.requests[0]
+            print(f"Uploading chunk of size {len(chunk)} bytes...")
+            response: Response = self.service.upload_chunk(current_request, chunk)
+            with self.lock:  # Ensure thread-safe access to the queue
+                self.response_queue.put(response)
+                self.process_responses()
+        except (KeyboardInterrupt, SystemExit):
+            print("Exiting...")
+            self.conn.close()
+        except  EOFError:
+            print("Connection to the server lost.")
+            self.retry_connection()
+        except (OSError) as e:
+            self.handle_error(e)
 
     def send_file_by_chunks(self, file_path: str, file_name: str) -> None:
         '''
@@ -177,13 +172,13 @@ class Client():
             response: Optional[Response] = None
             match request_action:
                 case 'touch':
-                    response: Response = self.service.file_creation(self.request)
+                    response: Response = self.service.file_creation(curr_request)
                 case 'rm':
-                    response: Response = self.service.file_deletion(self.request)
+                    response: Response = self.service.file_deletion(curr_request)
                 case 'mkdir':
-                    response: Response = self.service.dir_creation(self.request)
+                    response: Response = self.service.dir_creation(curr_request)
                 case 'rmdir':
-                    response: Response = self.service.dir_deletion(self.request)
+                    response: Response = self.service.dir_deletion(curr_request)
             if response is not None:
                 with self.lock:
                     self.response_queue.put(response)
@@ -192,6 +187,10 @@ class Client():
         except (KeyboardInterrupt, SystemExit):
             print("Exiting...")
             self.conn.close()
+            return None
+        except EOFError:
+            print("Connection to the server lost.")
+            self.retry_connection()
             return None
         except (OSError) as e: # Acknowledge failure
             self.handle_error(e)
@@ -206,6 +205,7 @@ class Client():
                 response: Response = self.response_queue.get()  # Wait for a response
                 if response is None:
                     self.handle_error("Received a None response.")
+                    self.requests.pop(0)
                     self.response_queue.task_done()
                     continue
                 # Check if the error attribute exists before accessing it
@@ -228,11 +228,29 @@ class Client():
             print(f"An error occurred: {error}")
             return {"error": str(error)}
         return {}
-    def retry_connection(self) -> None:
+    def callback_retry(self) -> None:
+        '''
+        Callback function to process missing requests
+        '''
+        if self.conn is not None:
+            while len(self.requests) > 0:
+                curr_request: Request = self.requests[0]
+                action: str = curr_request.action
+                if action in ['file_created', 'mv', 'cp', 'modified']:
+                    if action == 'mv':
+                        self.send_file_by_chunks(
+                            curr_request.destination_path,
+                            curr_request.file_name
+                        )
+                    else:
+                        self.send_file_by_chunks(curr_request.src_path, curr_request.file_name)
+                else:
+                    self.send_req()
+    def retry_connection(self) -> bool:
         '''
         Retry the connection to the server
         '''
-        ### PUT THE IPS IN THE CONFIG FILE FROM THE SERVERS
+        #TODO PUT THE IPS IN THE CONFIG FILE FROM THE SERVERS
         retries: int = 0
         while retries < self.retries_conn:
             try:
@@ -255,7 +273,7 @@ class Client():
                         print(f"Connected to server: {service[0]}:{service[1]}")
                         self.service.set_client_path(os.getcwd(), self.user)
                         print("Connection successfully established.")
-                        return
+                        self.callback_retry()
                     except Exception as conn_err:
                         print(f"Failed to connect to service {service[0]}:{service[1]}: {conn_err}")
                 print("Failed to connect to any available service. Retrying...")
