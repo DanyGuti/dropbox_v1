@@ -100,5 +100,11 @@ class InitService():
             port=config.port,
             registrar=config.registrar
         )
+        print(f"Starting server on port {config.port}")
+        if isinstance(service, MasterServerService):
+            service.node_coordinator.set_slaves()
+        else:
+            service.set_leader_ip()
         service.set_thread(t.start())
+        print(f"Server started on port, after {config.port}")
         return t

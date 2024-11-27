@@ -1,8 +1,12 @@
 '''
 Server side of the dropbox application
 '''
-from rpyc.utils.server import UDPRegistryClient
+from typing import Any
+import time
+import threading
 from utils.server.helpers import SERVERS_IP
+from rpyc.utils.server import UDPRegistryClient
+from rpyc.utils.factory import discover
 
 from server.imports.import_server_base import subprocess
 from server.services.base.base_service import Service
@@ -40,6 +44,7 @@ class DropbBoxV1Service(
         self.server_relative_path: str = client_service.get_server_relative_path()
         self.thread = None
         self.factory: IFactoryService = factory
+        self.leader_ip: str = ""
 
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -193,3 +198,34 @@ class DropbBoxV1Service(
         '''
         self.thread.stop()
         print("Thread has been stopped successfully")
+    def send_heartbeat(self) -> None:
+        '''
+        Send a heartbeat
+        '''
+        while True:
+            try:
+                subprocess.run(["ping", "-c", "1", self.leader_ip], check=True)
+                time.sleep(5)
+            except subprocess.CalledProcessError as error:
+                print(f"Error in the heartbeat subprocess {error}")
+                self.start_bully_algorithm(
+                    "election",
+                    [(self.leader_ip, 50000), (SERVERS_IP, 50000)],
+                    self.get_server_id()
+                )
+                break
+            time.sleep(5)
+    def set_leader_ip(self) -> None:
+        '''
+        Set the leader IP
+        '''
+        registry: UDPRegistryClient = \
+                UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
+        discovered_services: (list[tuple] | int | Any) = \
+            discover("MASTERSERVER", registrar=registry)
+        if not discovered_services:
+            print("No master server found")
+            return
+        self.leader_ip = discovered_services[0][0]
+        heartbeat_thread = threading.Thread(target=self.send_heartbeat, daemon=True)
+        heartbeat_thread.start()

@@ -4,6 +4,7 @@ Node coordinator module
 from typing import Any
 from rpyc.utils.server import UDPRegistryClient
 from rpyc.utils.factory import discover
+from rpyc.utils.factory import DiscoveryError
 from server.imports.import_server_base import rpyc, Request, Response,\
     SERVERS_IP
 from server.services.slave.server_impl import DropbBoxV1Service
@@ -39,6 +40,7 @@ class NodeCoordinator(TaskProcessor):
                             slave=slave_service,
                             chunk=chunk,
                         )
+                        print(f"Response: {response}")
                         if response.status_code == 0:
                             list_acks.append((slave_service.get_ip_service(), response))
                         else:
@@ -114,8 +116,8 @@ class NodeCoordinator(TaskProcessor):
         '''
         registry: UDPRegistryClient = \
         UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
-        discovered_services: (list[tuple] | int | Any) = \
-        discover("DROPBOXV1", registrar=registry)
+        print("Discovering services...", registry.list())
+        discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)
         for service in discovered_services:
             try:
                 conn: rpyc.Connection = rpyc.connect(
@@ -125,6 +127,8 @@ class NodeCoordinator(TaskProcessor):
                 service: DropbBoxV1Service = conn.root
                 self.slave_connections[service] = conn
                 self.slaves[service.get_server_id()] = service
+            except DiscoveryError as e:
+                print(f"Error: {e}")
             except Exception as e:
                 print(f"Error: {e}")
     def get_slaves_health(self) -> (list[float]):

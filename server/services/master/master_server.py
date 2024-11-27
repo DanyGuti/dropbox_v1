@@ -61,8 +61,10 @@ class MasterServerService(
                 })
                 result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
                     req_client,
-                    chunk=chunk_size
+                    chunk=chunk_size,
+                    sequence_events=self.sequence_events
                 )
+                print(result)
                 if isinstance(result, Exception):
                     raise result
                 sig = inspect.signature(method)
@@ -88,7 +90,6 @@ class MasterServerService(
         print("Goodbye client!", conn)
     @rpyc.exposed
     def set_client_path(self, cwd: str, user: str) -> None:
-        self.node_coordinator.get_slaves()
         self.sequence_events.append({
             "timestamp": time.time(),
             "user": user,
