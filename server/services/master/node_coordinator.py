@@ -36,7 +36,7 @@ class NodeCoordinator(TaskProcessor):
                     try:
                         response: Response = self.dispatch_req_slave(
                             request,
-                            slave=(slave_service.get_ip_service(), slave_service.get_port()),
+                            slave=slave_service,
                             chunk=chunk,
                         )
                         if response.status_code == 0:
@@ -82,7 +82,7 @@ class NodeCoordinator(TaskProcessor):
                         response: Response = self.disptach_set_client_path(
                             cwd=cwd,
                             user=user,
-                            slave=(slave_service.get_ip_service(), slave_service.get_port()),
+                            slave=slave_service,
                         )
                         if response.status_code == 0:
                             list_acks.append((slave_service.get_ip_service(), response))

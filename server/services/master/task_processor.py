@@ -1,8 +1,8 @@
 '''
 Task Processor module
 '''
-from server.imports.import_server_base import Request, Response, rpyc
-from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
+from server.imports.import_server_base import Request, Response
+from server.services.slave.server_impl import DropbBoxV1Service
 
 class TaskProcessor:
     '''
@@ -14,28 +14,20 @@ class TaskProcessor:
     def dispatch_req_slave(
         self,
         request: Request,
-        slave: tuple,
+        slave: DropbBoxV1Service,
         chunk: int
     ) -> (Response | Exception):
         '''
         Dispatch the request to the slave
         '''
         try:
-            conn: rpyc.Connection = rpyc.connect(
-                slave[0],
-                slave[1],
-                config={"allow_public_attrs": True
-            })
-            if conn is None:
-                print(f"No avaiable server implementation at port {slave[1]}")
-                return Response(status_code=1, message="Error dispatching request, TaskProcessor")
-            service: IDropBoxServiceV1 = conn.root
+            service: DropbBoxV1Service = slave
         except ConnectionError as e:
             print(e)
             return Response(status_code=1,\
                 message="Error dispatching request, TaskProcessor", error=str(e)
             )
-        print(f"Connected to slave server: {slave[0], slave[1]}")
+        print(f"Connected to slave server: {service.get_server_id(), service.get_ip_service()}")
         task_action: str = request.action
         try:
             response: Response
@@ -50,7 +42,6 @@ class TaskProcessor:
                     response = service.dir_creation(request)
                 case 'rmdir':
                     response = service.dir_deletion(request)
-            conn.close()
             return response
         except ConnectionError as e:
             print(e)
@@ -59,23 +50,13 @@ class TaskProcessor:
                 message="Error dispatching request, TaskProcessor",
                 error=str(e)
             )
-    def disptach_set_client_path(self, cwd: str, user: str, slave: tuple) -> Response:
+    def disptach_set_client_path(self, cwd: str, user: str, slave: DropbBoxV1Service) -> Response:
         '''
         Dispatch the set client path to the slave
         '''
         try:
-            conn: rpyc.Connection = rpyc.connect(
-                slave[0],
-                slave[1],
-                config={"allow_public_attrs": True
-            })
-            if conn is None:
-                print(f"No avaiable server implementation at port {slave[1]}")
-                return Response(
-                    status_code=1,
-                    message="No avaiable server implementation from Task Processor"
-                )
-            service: IDropBoxServiceV1 = conn.root
+            
+            service: DropbBoxV1Service = slave
         except ConnectionError as e:
             print(e)
             return Response(
@@ -83,9 +64,8 @@ class TaskProcessor:
                 message="Error dispatching request, set_client_path, TaskProcessor",
                 error=str(e)
             )
-        print(f"Connected to slave server: {slave[0], slave[1]}")
+        print(f"Connected to slave server: {slave.get_server_id(), slave.get_ip_service()}")
         response: Response = service.set_client_path(cwd, user)
-        conn.close()
         return response
     def process_dispatcher(self, request: Request) -> (Response | Exception):
         '''
