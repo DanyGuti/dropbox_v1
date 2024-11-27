@@ -4,23 +4,26 @@ This is a class to implement for the i_initService.
 from server.imports.import_server_base import os, sys, ForkingServer, ThreadedServer
 from server.imports.import_server_base import ServerConfig
 
-from server.build.factories.factory import FactoryServices
 from server.interfaces.common.health_interface import IHealthService
-from server.interfaces.init_interfaces.init_service_interface import IInitService
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 from server.interfaces.election_interface import IElection
 from server.interfaces.local_fms_interface import IFileManagementService
 from server.services.master.master_server import MasterServerService
+from server.services.master.node_coordinator import NodeCoordinator
 from server.services.slave.server_impl import DropbBoxV1Service
+from server.interfaces.init_interfaces.factory_interface import IFactoryService
 DIR_NAME: str = "dropbox_genial_loli_app"
 
-class InitService(IInitService):
+class InitService():
     '''
     Init service class
     '''
-    def __init__(self) -> None:
-        self.factory: FactoryServices = FactoryServices()
+    def __init__(self, factory: IFactoryService) -> None:
+        self.factory: IFactoryService = factory
     def create_service(self, config: ServerConfig) -> None:
+        '''
+        Create the server config
+        '''
         if config.is_master:
             self.create_master_service(config)
         else:
@@ -30,7 +33,11 @@ class InitService(IInitService):
         Create the master service
         '''
         try:
-            master_service: MasterServerService = self.factory.create_master_service()
+            node_coordinator: NodeCoordinator = NodeCoordinator()
+            master_service: MasterServerService = MasterServerService(
+                coordinator=node_coordinator,
+                health_service=None
+            )
             self.start_server(master_service, config)
         except (OSError, IOError) as e:
             print(f"Error: {e}")
@@ -52,7 +59,8 @@ class InitService(IInitService):
                 client_service=client_service,
                 file_management_service=file_management_service,
                 health_service=health_service,
-                election_service=election_service
+                election_service=election_service,
+                factory=self.factory
             )
             # Check if the directory exists
             if not os.path.exists(DIR_NAME):

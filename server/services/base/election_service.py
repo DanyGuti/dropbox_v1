@@ -1,3 +1,6 @@
+'''
+File that contains the election service
+'''
 from server.interfaces.election_interface import IElection
 from server.imports.import_server_base import rpyc
 

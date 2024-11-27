@@ -7,12 +7,13 @@ from rpyc.utils.server import ThreadedServer
 from utils.server.helpers import SERVERS_IP
 from utils.server.server_config import ServerConfig
 from server.build.init_service import InitService
+from server.build.factories.factory import FactoryServices
 
 def main() -> None:
     '''
     Main function to start the master server
     '''
-    InitService().create_master_service(
+    InitService(factory=FactoryServices()).create_master_service(
         ServerConfig(
             auto_register=True,
             is_master=True,

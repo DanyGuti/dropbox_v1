@@ -11,8 +11,11 @@ from server.services.base.file_management_service import FileManagementService
 from server.interfaces.election_interface import IElection
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.master.master_server import MasterServerService
+from server.interfaces.init_interfaces.factory_interface import IFactoryService
+from server.interfaces.init_interfaces.master_service_interface import IMasterServerService
+from server.services.base.election_service import Election
 
-class FactoryServices:
+class FactoryServices(IFactoryService):
     '''
     Factory Services
     '''
@@ -21,10 +24,6 @@ class FactoryServices:
         Create the client service
         '''
         return ClientServerService()
-    def create_master_coordinator(self) -> None:
-        '''
-        Create the master coordinator
-        '''
     def create_health_service(self) -> IHealthService:
         '''
         Create the health service
@@ -39,11 +38,12 @@ class FactoryServices:
         '''
         Create the election service
         '''
-        return IElection
-    def create_master_service(self) -> MasterServerService:
+        return Election()
+    def create_master_service(self) -> IMasterServerService:
         '''
         Create the master service
         '''
-        # Create the master service by including a NodeCoordinator or any relevant services
-        node_coordinator = NodeCoordinator()
-        return MasterServerService(coordinator=node_coordinator, health_service=None)
+        return MasterServerService(
+            coordinator=NodeCoordinator(),
+            health_service=HealthService(health_status=100.0)
+        )

@@ -13,14 +13,13 @@ from server.interfaces.init_interfaces.client_service_interface import IClientSe
 from server.interfaces.election_interface import IElection
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 from server.interfaces.local_fms_interface import IFileManagementService
-from server.build.factories.factory import FactoryServices
-from server.services.master.master_server import MasterServerService
+from server.interfaces.init_interfaces.factory_interface import IFactoryService
 
 @rpyc.service
 class DropbBoxV1Service(
     IDropBoxServiceV1,
     Service,
-    rpyc.Service
+    rpyc.Service,
 ):
     '''
     DropBox service
@@ -30,7 +29,8 @@ class DropbBoxV1Service(
             client_service: IClientServerService,
             file_management_service: IFileManagementService,
             health_service: IHealthService,
-            election_service: IElection
+            election_service: IElection,
+            factory: IFactoryService
         ) -> None:
         super().__init__(health_service)
         self.client_service: IClientServerService = client_service
@@ -39,6 +39,7 @@ class DropbBoxV1Service(
         self.election_service: IElection = election_service
         self.server_relative_path: str = client_service.get_server_relative_path()
         self.thread = None
+        self.factory: IFactoryService = factory
 
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -148,7 +149,7 @@ class DropbBoxV1Service(
             # Stop the past thread
             self.stop_thread()
             # Create the master service with the factory
-            master_service: MasterServerService = FactoryServices().create_master_service()
+            master_service = self.factory.create_master_service()
             # Set the server id
             master_service.set_server_id(self.get_server_id())
             # Set the IP service
@@ -192,4 +193,3 @@ class DropbBoxV1Service(
         '''
         self.thread.stop()
         print("Thread has been stopped successfully")
-        

@@ -11,48 +11,16 @@ from server.services.base.base_service import Service
 from server.services.master.node_coordinator import NodeCoordinator
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 from server.interfaces.common.health_interface import IHealthService
+from server.interfaces.init_interfaces.master_service_interface import IMasterServerService
 IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.92"
 
-def apply_slave_distribution_wrapper(
-    method: Callable[['MasterServerService', Request, int],
-                    (Response | Exception)]) -> Callable[['MasterServerService', Request, int],
-                    (Response | Exception)]:
-    '''
-    Wrapper to distribute load
-    on each call to the master server
-    '''
-    def wrapper(
-        self: 'MasterServerService',
-        req_client: Request,
-        chunk_size: int = 0
-    ) -> (Response | Exception):
-        try:
-            self.sequence_events.append({
-                "timestamp": time.time(),
-                "user": req_client.task.user,
-                "request": req_client,
-                "acks": []
-            })
-            result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
-                req_client,
-                chunk=chunk_size
-            )
-            if isinstance(result, Exception):
-                raise result
-            sig = inspect.signature(method)
-            if len(sig.parameters) == 3:  # method accepts three parameters
-                return method(self, req_client, chunk_size)
-            return method(self, req_client)
-        except (ConnectionError, TimeoutError, ValueError) as e:
-            print(f"Error distributing load: {e}")
-            return e
-    return wrapper
 
 @rpyc.service
 class MasterServerService(
     Service,
     IDropBoxServiceV1,
-    rpyc.Service
+    rpyc.Service,
+    IMasterServerService
 ):
     '''
     Master server service class
@@ -69,6 +37,42 @@ class MasterServerService(
         self.server_relative_path: str = os.path.join(os.getcwd())
         self.sequence_events = []
         self.set_server_id(1)
+        self.server_thread: rpyc.ThreadedServer = None
+    @staticmethod
+    def apply_slave_distribution_wrapper(
+        method: Callable[['MasterServerService', Request, int],
+                    (Response | Exception)]) -> Callable[['MasterServerService', Request, int],
+                    (Response | Exception)]:
+        '''
+        Wrapper to distribute load
+        on each call to the master server
+        '''
+        def wrapper(
+            self: 'MasterServerService',
+            req_client: Request,
+            chunk_size: int = 0
+        ) -> (Response | Exception):
+            try:
+                self.sequence_events.append({
+                    "timestamp": time.time(),
+                    "user": req_client.task.user,
+                    "request": req_client,
+                    "acks": []
+                })
+                result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
+                    req_client,
+                    chunk=chunk_size
+                )
+                if isinstance(result, Exception):
+                    raise result
+                sig = inspect.signature(method)
+                if len(sig.parameters) == 3:  # method accepts three parameters
+                    return method(self, req_client, chunk_size)
+                return method(self, req_client)
+            except (ConnectionError, TimeoutError, ValueError) as e:
+                print(f"Error distributing load: {e}")
+                return e
+        return wrapper
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
         Method to be called when a connection is established
@@ -111,3 +115,13 @@ class MasterServerService(
     @apply_slave_distribution_wrapper
     def dir_deletion(self, request: Request) -> (Response | Exception):
         pass
+    def set_thread(self, server: rpyc.ThreadedServer) -> None:
+        '''
+        Set the threaded server
+        '''
+        self.server_thread = server
+    def get_thread(self) -> rpyc.ThreadedServer:
+        '''
+        Get the threaded server
+        '''
+        return self.server_thread
