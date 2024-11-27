@@ -39,11 +39,11 @@ class Election(IElection):
                 responses.append("")
         return responses, next_max_node
     @rpyc.exposed
-    def elect_leader(self):
+    def elect_leader(self) -> None:
         '''
         Elect a new leader based on the highest id
         '''
-        pass
+        print(self.receive_election_message("leader"))
     @rpyc.exposed
     def update_leader(self):
         '''
@@ -59,5 +59,7 @@ class Election(IElection):
         Receive an election message
         '''
         if message_election == "election":
+            return "ok"
+        elif message_election == "leader":
             return "ok"
         return "error"

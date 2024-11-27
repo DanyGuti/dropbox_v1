@@ -1,15 +1,20 @@
 '''
 Server side of the dropbox application
 '''
-from server.imports.import_server_base import rpyc, Request, Response
+from rpyc.utils.server import UDPRegistryClient
+from utils.server.helpers import SERVERS_IP
 
+from server.imports.import_server_base import subprocess
 from server.services.base.base_service import Service
+from server.imports.import_server_base import rpyc, Request, Response, ThreadedServer
 from server.interfaces.common.health_interface import IHealthService
 from server.services.base.client_server_service import ClientServerService
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 from server.interfaces.election_interface import IElection
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 from server.interfaces.local_fms_interface import IFileManagementService
+from server.build.factories.factory import FactoryServices
+from server.services.master.master_server import MasterServerService
 
 @rpyc.service
 class DropbBoxV1Service(
@@ -33,6 +38,7 @@ class DropbBoxV1Service(
         self.health_service: IHealthService = health_service
         self.election_service: IElection = election_service
         self.server_relative_path: str = client_service.get_server_relative_path()
+        self.thread = None
 
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
@@ -47,7 +53,7 @@ class DropbBoxV1Service(
         with a client
         '''
         print("Goodbye client!", conn)
-    def propagate_election(
+    def start_bully_algorithm(
         self,
         message_election: str,
         nodes: list[tuple[str, int]],
@@ -64,6 +70,7 @@ class DropbBoxV1Service(
         all_empty_from_nodes: bool = all("" == res for res in responses[0])
         if all_empty_from_nodes:
             self.election_service.elect_leader()
+            self.promote_self_to_master()
         else:
             self.election_service.send_election_message("election", responses[1])
     @rpyc.exposed
@@ -133,3 +140,56 @@ class DropbBoxV1Service(
             self.client_service.get_server_relative_path(),
             request.file_name
         )
+    def promote_self_to_master(self) -> None:
+        '''
+        Promote self to master
+        '''
+        try:
+            # Stop the past thread
+            self.stop_thread()
+            # Create the master service with the factory
+            master_service: MasterServerService = FactoryServices().create_master_service()
+            # Set the server id
+            master_service.set_server_id(self.get_server_id())
+            # Set the IP service
+            master_service.set_ip_service(self.get_ip_service())
+            # Set the port
+            master_service.set_port(self.get_port())
+            # Create a new registry client to register the master(self and slaves)
+            subprocess.run(["rpyc_registry", "--port", "50081", "-l", "true"], check=True)
+            # Start the master service
+            t: ThreadedServer = ThreadedServer(
+                master_service,
+                auto_register=True,
+                port=master_service.get_port(),
+                registrar=UDPRegistryClient(
+                    SERVERS_IP,
+                    50081
+                ),
+            )
+            t.start()
+            print("Promoted to master")
+            return None
+        except subprocess.CalledProcessError as error:
+            print(f"Error in the promotion from slave to master subprocess {error}")
+            return None
+        except Exception as error:
+            print(f"Error promoting slave to master has failed after bully algorithm: {error}")
+            return None
+    def set_thread(self, thread: ThreadedServer) -> None:
+        '''
+        Set the thread
+        '''
+        self.thread = thread
+    def get_thread(self) -> ThreadedServer:
+        '''
+        Get the thread
+        '''
+        return self.thread
+    def stop_thread(self) -> None:
+        '''
+        Stop the thread
+        '''
+        self.thread.stop()
+        print("Thread has been stopped successfully")
+        
