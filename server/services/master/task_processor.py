@@ -11,7 +11,12 @@ class TaskProcessor:
     _dispatcher: list[Request] = []
     def __init__(self) -> None:
         self._dispatcher = []
-    def dispatch_req_slave(self, request: Request, slave: tuple, chunk: int) -> (Response | Exception):
+    def dispatch_req_slave(
+        self,
+        request: Request,
+        slave: tuple,
+        chunk: int
+    ) -> (Response | Exception):
         '''
         Dispatch the request to the slave
         '''
@@ -23,11 +28,13 @@ class TaskProcessor:
             })
             if conn is None:
                 print(f"No avaiable server implementation at port {slave[1]}")
-                return
+                return Response(status_code=1, message="Error dispatching request, TaskProcessor")
             service: IDropBoxServiceV1 = conn.root
         except ConnectionError as e:
             print(e)
-            return e
+            return Response(status_code=1,\
+                message="Error dispatching request, TaskProcessor", error=str(e)
+            )
         print(f"Connected to slave server: {slave[0], slave[1]}")
         task_action: str = request.action
         try:
@@ -47,7 +54,11 @@ class TaskProcessor:
             return response
         except ConnectionError as e:
             print(e)
-            return e
+            return Response(
+                status_code=1,
+                message="Error dispatching request, TaskProcessor",
+                error=str(e)
+            )
     def disptach_set_client_path(self, cwd: str, user: str, slave: tuple) -> Response:
         '''
         Dispatch the set client path to the slave
@@ -60,11 +71,18 @@ class TaskProcessor:
             })
             if conn is None:
                 print(f"No avaiable server implementation at port {slave[1]}")
-                return
+                return Response(
+                    status_code=1,
+                    message="No avaiable server implementation from Task Processor"
+                )
             service: IDropBoxServiceV1 = conn.root
         except ConnectionError as e:
             print(e)
-            return e
+            return Response(
+                status_code=1,
+                message="Error dispatching request, set_client_path, TaskProcessor",
+                error=str(e)
+            )
         print(f"Connected to slave server: {slave[0], slave[1]}")
         response: Response = service.set_client_path(cwd, user)
         conn.close()

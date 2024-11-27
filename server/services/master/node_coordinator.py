@@ -2,11 +2,10 @@
 Node coordinator module
 '''
 from typing import Any
-from time import time
 from rpyc.utils.server import UDPRegistryClient
 from rpyc.utils.factory import discover
-from server.imports.import_server_base import rpyc, Request, Response\
-    , SERVERS_IP, SLAVE_SERVER_PORT
+from server.imports.import_server_base import rpyc, Request, Response,\
+    SERVERS_IP
 from server.services.slave.server_impl import DropbBoxV1Service
 from server.services.master.task_processor import TaskProcessor
 
@@ -19,23 +18,62 @@ class NodeCoordinator(TaskProcessor):
         self.slaves: dict[int: DropbBoxV1Service] = {}
         self.slave_connections: dict[tuple, rpyc.Connection] = {}
         self.slaves_health: list[float] = []
-    def distribute_load_slaves(self, request: Request, chunk: int) -> (Response | Exception):
+    def distribute_load_slaves(
+        self,
+        request: Request,
+        chunk: int,
+        sequence_events: list[dict[str, object]]
+    ) -> (Response | Exception):
         '''
         Distribute the load
         '''
         try:
-            return self.dispatch_req_slave(
-                request,
-                slave=(SERVERS_IP, SLAVE_SERVER_PORT),
-                chunk=chunk,
+            list_acks: list = sequence_events[-1]["acks"]
+            for server_id, slave_service in self.slaves.items():
+                slave_service: DropbBoxV1Service
+                server_id: int
+                if server_id == slave_service.get_server_id():
+                    try:
+                        response: Response = self.dispatch_req_slave(
+                            request,
+                            slave=(slave_service.get_ip_service(), slave_service.get_port()),
+                            chunk=chunk,
+                        )
+                        if response.status_code == 0:
+                            list_acks.append((slave_service.get_ip_service(), response))
+                        else:
+                            print(
+                                f"Error distributing load to server \
+                                    {server_id}, from node coordinator"
+                            )
+                    except Exception as e:
+                        print(
+                            f"Error distributing load to server \
+                                {server_id}, {e}, from node coordinator, general exception"
+                        )
+            return Response(
+                status_code=0,
+                message="Load distributed to slaves from node coordinator",
+                error=None,
+                is_broadcasted=True
             )
         except Exception as e:
-            return e
-    def set_client_path(self, cwd: str, user: str, sequence_events: list[dict[str, object]]) -> None:
+            return Response(
+                status_code=1,
+                message="Error distributing load to slaves from node coordinator",
+                error=str(e)
+            )
+    def set_client_path(
+        self,
+        cwd: str,
+        user: str,
+        sequence_events: list[dict[str, object]]
+    ) -> None:
         '''
         Set the client path
         '''
         try:
+            list_acks: list = sequence_events[-1]["acks"]
             for server_id, slave_service in self.slaves.items():
                 slave_service: DropbBoxV1Service
                 server_id: int
@@ -47,19 +85,29 @@ class NodeCoordinator(TaskProcessor):
                             slave=(slave_service.get_ip_service(), slave_service.get_port()),
                         )
                         if response.status_code == 0:
-                            list_acks: list = sequence_events[-1]["acks"]
-                            list_acks.append(server_id)
-                            sequence_events.append({
-                                "timestamp": time.time(),
-                                "user": user,
-                                "request": "set_client_path",
-                                "acks": list_acks
-                            })
+                            list_acks.append((slave_service.get_ip_service(), response))
+                        else:
+                            print(
+                                f"Error setting client path for server\
+                                    {server_id}, from node coordinator"
+                                )
                     except Exception as e:
-                        print(f'Error: {e}')
-                        print(f"Error setting client path for server {server_id}")
+                        print(
+                            f"Error setting client path for server {server_id},\
+                                {e}, from node coordinator, general exception"
+                            )
+                return Response(
+                    status_code=0,
+                    message="Client path set to slaves from node coordinator",
+                    error=None,
+                    is_broadcasted=True
+                )
         except Exception as e:
-            return e
+            return Response(
+                status_code=1,
+                message="Error setting client path to slaves from node coordinator",
+                error=str(e)
+            )
     def set_slaves(self) -> None:
         '''
         Get the list of slaves
