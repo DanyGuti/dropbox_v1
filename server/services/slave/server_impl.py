@@ -7,6 +7,7 @@ from server.services.base.base_service import Service
 from server.interfaces.common.health_interface import IHealthService
 from server.services.base.client_server_service import ClientServerService
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
+from server.interfaces.election_interface import IElection
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 from server.interfaces.local_fms_interface import IFileManagementService
 
@@ -23,12 +24,14 @@ class DropbBoxV1Service(
         self,
             client_service: IClientServerService,
             file_management_service: IFileManagementService,
-            health_service: IHealthService
+            health_service: IHealthService,
+            election_service: IElection
         ) -> None:
         super().__init__(health_service)
         self.client_service: IClientServerService = client_service
         self.file_management_service: IFileManagementService = file_management_service
         self.health_service: IHealthService = health_service
+        self.election_service: IElection = election_service
         self.server_relative_path: str = client_service.get_server_relative_path()
 
     def on_connect(self, conn: rpyc.Connection) -> None:
@@ -44,6 +47,25 @@ class DropbBoxV1Service(
         with a client
         '''
         print("Goodbye client!", conn)
+    def propagate_election(
+        self,
+        message_election: str,
+        nodes: list[tuple[str, int]],
+        curr_node: int
+    ) -> None:
+        '''
+        Propagate an election message
+        '''
+        responses: tuple[list[str], int] = self.election_service.send_election_message(
+            message_election,
+            nodes,
+            curr_node
+        )
+        all_empty_from_nodes: bool = all("" == res for res in responses[0])
+        if all_empty_from_nodes:
+            self.election_service.elect_leader()
+        else:
+            self.election_service.send_election_message("election", responses[1])
     @rpyc.exposed
     def set_client_path(self, cwd: str, user: str) -> None:
         self.client_service.set_client_path(cwd, user)
