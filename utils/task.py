@@ -14,3 +14,4 @@ class Task:
     id_server: int = 0
     time_reception: time = 0
     user: str = ""
+    id_task: int = 0

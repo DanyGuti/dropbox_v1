@@ -24,6 +24,7 @@ class Client():
         self.response_queue: queue.Queue[Response] = queue.Queue()
         self.lock: threading.Lock = threading.Lock()
         self.user: str = user
+        self.timeout = 10 # Seconds to wait for the server to respond
     def start_connection(self, cwd: str) -> None:
         '''
         Start connection to the server (Service)

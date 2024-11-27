@@ -37,6 +37,7 @@ class ClientWatcher(Client, SystemEventHandler):
         self.last_event_time: time = time.time()  # Track the time of the last event
         self.accumulation_timeout: float = 0.25
         self.lock: threading.Lock = threading.Lock()
+        self.invocation_id: int = 0
         # self.root_path_stack: list = re.split(r'(\/)', CWD)
     # Call the parent class
     def on_any_event(self, event: FileSystemEvent) -> None:
@@ -81,10 +82,10 @@ class ClientWatcher(Client, SystemEventHandler):
             destination_path=dst,
             file_name=file,
             is_directory=is_dir,
-            task=Task(1, 1, time.time(), self.user),
+            task=Task(1, 1, time.time(), self.user, self.invocation_id + 1),
             time_of_request=time.time(),
             src_path=path
-            )
+        )
         if action == 'file_created' or action == 'mv' or action == 'cp' or action == 'modified':
             if action == 'mv':
                 self.client.send_file_by_chunks(dst, file)

@@ -5,7 +5,7 @@ will have one replica server
 '''
 
 from server.imports.import_server_base import Callable, rpyc, os, inspect\
-    , Request, Response
+    , Request, Response, time
 
 from server.services.base.base_service import Service
 from server.services.master.node_coordinator import NodeCoordinator
@@ -27,6 +27,12 @@ def apply_slave_distribution_wrapper(
         chunk_size: int = 0
     ) -> (Response | Exception):
         try:
+            self.sequence_events.append({
+                "timestamp": time.time(),
+                "user": req_client.task.user,
+                "request": req_client,
+                "acks": []
+            })
             result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
                 req_client,
                 chunk=chunk_size
@@ -52,6 +58,7 @@ class MasterServerService(
     Master server service class
     '''
     clients: dict[str, str] = {}
+    sequence_events: list[dict[str, object]]
     def __init__(
             self,
             coordinator: NodeCoordinator,
@@ -76,6 +83,12 @@ class MasterServerService(
         print("Goodbye client!", conn)
     @rpyc.exposed
     def set_client_path(self, cwd: str, user: str) -> None:
+        self.sequence_events.append({
+            "timestamp": time.time(),
+            "user": user,
+            "request": "set_client_path",
+            "acks": []
+        })
         return self.node_coordinator.set_client_path(cwd, user)
     @rpyc.exposed
     @apply_slave_distribution_wrapper
