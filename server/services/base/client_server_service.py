@@ -2,8 +2,9 @@
 Module for the client_server_service
 '''
 
-from server.imports.import_server_base import os, Request, Callable
+from server.imports.import_server_base import os, Request, Callable, Response
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
+import time
 
 def get_diff_path(path: str, client_path: str) -> str:
     '''
@@ -57,13 +58,18 @@ class ClientServerService(IClientServerService):
         Get the client path
         '''
         return self.client_path
-    def set_client_state_path(self, request: Request) -> None:
+    def set_client_state_path(self, request: Request) -> Response:
         '''
         Set the client state path
         '''
         try:
             if request.task.user not in self.clients_paths:
-                return False
+                return Response(
+                    status_code=1,
+                    message="User not found",
+                    error="Error setting client path",
+                    time_sent=time.time()
+                )
             # if request.src_path in [self.client_path, ""]:
             #     return False
             # Getting the difference between the two paths
@@ -94,12 +100,27 @@ class ClientServerService(IClientServerService):
                     print(f"Something went wrong: the parent directory\
                         {os.path.dirname(self.server_relative_path)}\
                     not found.")
-                    return False
-            return True
+                    return Response(
+                        status_code=2,
+                        message="Parent directory not found",
+                        error="Error setting client path",
+                        time_sent=time.time()
+                    )
+            return Response(
+                status_code=0,
+                message="Client path set",
+                error=None,
+                time_sent=time.time()
+            )
         except (OSError, IOError) as e:
             print("ERRORRRR")
             print(f"Error: {e}")
-            return e
+            return Response(
+                status_code=3,
+                message="Error setting client path",
+                error=str(e),
+                time_sent=time.time()
+            )
     def get_server_relative_path(self) -> str:
         '''
         Get the server relative path

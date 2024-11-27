@@ -48,7 +48,7 @@ class TaskProcessor:
         except ConnectionError as e:
             print(e)
             return e
-    def disptach_set_client_path(self, cwd: str, user: str, slave: tuple) -> None:
+    def disptach_set_client_path(self, cwd: str, user: str, slave: tuple) -> Response:
         '''
         Dispatch the set client path to the slave
         '''
@@ -66,8 +66,9 @@ class TaskProcessor:
             print(e)
             return e
         print(f"Connected to slave server: {slave[0], slave[1]}")
-        service.set_client_path(cwd, user)
+        response: Response = service.set_client_path(cwd, user)
         conn.close()
+        return response
     def process_dispatcher(self, request: Request) -> (Response | Exception):
         '''
         Process the dispatcher (from response of the slave and broadcast results)

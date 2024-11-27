@@ -2,7 +2,7 @@
 This file contains the interface for the client-server service
 '''
 from server.imports.import_server_base import Callable,\
-    Request, ABC, abstractmethod
+    Request, ABC, abstractmethod, Response
 
 class IClientServerService(ABC):
     '''
@@ -18,12 +18,12 @@ class IClientServerService(ABC):
         Wrapper to set the client directory state
         '''
     @abstractmethod
-    def set_client_path(self, cwd: str, user: str) -> None:
+    def set_client_path(self, cwd: str, user: str) -> str:
         '''
         Get the health status of the server
         '''
     @abstractmethod
-    def set_client_state_path(self, request: Request) -> None:
+    def set_client_state_path(self, request: Request) -> Response:
         '''
         Set the health status of the server
         '''

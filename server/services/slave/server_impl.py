@@ -75,8 +75,8 @@ class DropbBoxV1Service(
         else:
             self.election_service.send_election_message("election", responses[1])
     @rpyc.exposed
-    def set_client_path(self, cwd: str, user: str) -> None:
-        self.client_service.set_client_path(cwd, user)
+    def set_client_path(self, cwd: str, user: str) -> Response:
+        return self.client_service.set_client_path(cwd, user)
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> Response:
