@@ -4,7 +4,9 @@ inherits from ClientWatcher
 '''
 from client.imports.import_base import os, queue, Optional,\
     threading, rpyc, UDPRegistryClient,\
-        discover, Request, Response, SERVERS_IP, IDropBoxServiceV1, Any
+        discover, Request, Response, SERVERS_IP, IDropBoxServiceV1, \
+        DiscoveryError, Any, time
+RETRY_DELAY: int = 5
 
 class Client():
     '''
@@ -26,6 +28,7 @@ class Client():
         self.user: str = user
         self.requests: list[Request] = []
         self.timeout = 10 # Seconds to wait for the server to respond
+        self.retries_conn = 3 # Number of retries to attempt
     def start_connection(self, cwd: str) -> None:
         '''
         Start connection to the server (Service)
@@ -83,6 +86,9 @@ class Client():
         except (OSError) as e: # Acknowledge failure
             print(e)
             self.handle_error(e)
+        except DiscoveryError as e:
+            print(f"An error occurred: {e}")
+            self.retry_connection()
     def close_connection(self) -> None:
         '''
         Close connection to the server
@@ -101,17 +107,26 @@ class Client():
         '''
         Upload a chunk of a file to the server
         '''
-        try:
-            print(f"Uploading chunk of size {len(chunk)} bytes...")
-            response: Response = self.service.upload_chunk(self.request, chunk)
-            with self.lock:  # Ensure thread-safe access to the queue
-                self.response_queue.put(response)
-                self.process_responses()
-        except (KeyboardInterrupt, SystemExit):
-            print("Exiting...")
-            self.conn.close()
-        except (OSError) as e: # Acknowledge failure
-            self.handle_error(e)
+        while True:
+            try:
+                current_request: Request = self.requests[0]
+                print(f"Uploading chunk of size {len(chunk)} bytes...")
+                response: Response = self.service.upload_chunk(self.request, chunk)
+                with self.lock:  # Ensure thread-safe access to the queue
+                    self.response_queue.put(response)
+                    self.process_responses()
+            except (KeyboardInterrupt, SystemExit):
+                print("Exiting...")
+                self.conn.close()
+            except  EOFError("stream has been closed"):
+                print("Connection to the server lost.")
+                self.retry_connection()
+                # PROCESS request again
+            except EOFError("connection closed by peer"):
+                print("Connection closed by the master node.")
+                self.retry_connection()
+            except (OSError) as e: # Acknowledge failure
+                self.handle_error(e)
 
     def send_file_by_chunks(self, file_path: str, file_name: str) -> None:
         '''
@@ -218,20 +233,37 @@ class Client():
         Retry the connection to the server
         '''
         ### PUT THE IPS IN THE CONFIG FILE FROM THE SERVERS
-        registry: UDPRegistryClient = \
-                UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
-        discovered_services: (list[tuple] | int | Any) = \
-            discover("MASTERSERVER", registrar=registry)
-        for service in discovered_services:
-            self.conn: rpyc.Connection = rpyc.connect(
-                service[0],
-                service[1],
-                config={"allow_public_attrs": True
-            })
-        if self.conn is None:
-            print("No available services found from retry_connection client_impl.")
-            return
-        self.service: IDropBoxServiceV1 = self.conn.root
-        print(f"Connected to server: {self.conn}")
-        self.service.set_client_path(os.getcwd(), self.user)
-        print("Connection re-established from retry connection client_impl.")
+        retries: int = 0
+        while retries < self.retries_conn:
+            try:
+                registry: UDPRegistryClient = \
+                        UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
+                discovered_services: (list[tuple] | int | Any) = \
+                    discover("MASTERSERVER", registrar=registry)
+                if not discovered_services:
+                    print("No available services discovered. Retrying...")
+                    retries += 1
+                    continue
+                for service in discovered_services:
+                    try:
+                        self.conn: rpyc.Connection = rpyc.connect(
+                            service[0],
+                            service[1],
+                            config={"allow_public_attrs": True
+                        })
+                        self.service: IDropBoxServiceV1 = self.conn.root
+                        print(f"Connected to server: {service[0]}:{service[1]}")
+                        self.service.set_client_path(os.getcwd(), self.user)
+                        print("Connection successfully established.")
+                        return
+                    except Exception as conn_err:
+                        print(f"Failed to connect to service {service[0]}:{service[1]}: {conn_err}")
+                print("Failed to connect to any available service. Retrying...")
+                retries += 1
+                time.sleep(RETRY_DELAY)
+            except DiscoveryError as e:
+                print(f"An error occurred: {e}, service MASTER not found.")
+                retries += 1
+            except Exception as general_err:
+                print(f"Unexpected error during retry: {general_err}. Retrying...")
+                retries += 1

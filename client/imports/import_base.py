@@ -15,7 +15,7 @@ from watchdog.events import FileMovedEvent, FileModifiedEvent, FileDeletedEvent,
 from watchdog.events import FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent # pylint: disable=unused-import
 
 from rpyc.utils.registry import UDPRegistryClient # pylint: disable=unused-import
-from rpyc.utils.factory import discover # pylint: disable=unused-import
+from rpyc.utils.factory import discover, DiscoveryError # pylint: disable=unused-import
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1 # pylint: disable=unused-import
 
 from utils.custom_req_res import Request, Response # pylint: disable=unused-import
