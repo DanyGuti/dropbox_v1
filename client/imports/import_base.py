@@ -11,7 +11,7 @@ import rpyc # pylint: disable=unused-import
 
 from watchdog.observers import Observer # pylint: disable=unused-import
 from watchdog.events import FileSystemEventHandler, FileSystemEvent # pylint: disable=unused-import
-from watchdog.events import FileMovedEvent, FileModifiedEvent, FileDeletedEvent # pylint: disable=unused-import
+from watchdog.events import FileMovedEvent, FileModifiedEvent, FileDeletedEvent, FileClosedEvent # pylint: disable=unused-import
 from watchdog.events import FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent # pylint: disable=unused-import
 
 from rpyc.utils.registry import UDPRegistryClient # pylint: disable=unused-import
