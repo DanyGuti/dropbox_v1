@@ -82,10 +82,13 @@ class ClientWatcher(Client, SystemEventHandler):
             destination_path=dst,
             file_name=file,
             is_directory=is_dir,
-            task=Task(1, 1, time.time(), self.user, self.invocation_id + 1),
+            task=Task(1, 1, time.time(), self.user, self.invocation_id),
             time_of_request=time.time(),
             src_path=path
         )
+        self.invocation_id += 1
+        # Append the current request to the list of requests
+        self.client.requests.append(self.client.request)
         if action == 'file_created' or action == 'mv' or action == 'cp' or action == 'modified':
             if action == 'mv':
                 self.client.send_file_by_chunks(dst, file)

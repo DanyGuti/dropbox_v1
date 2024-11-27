@@ -24,6 +24,7 @@ class Client():
         self.response_queue: queue.Queue[Response] = queue.Queue()
         self.lock: threading.Lock = threading.Lock()
         self.user: str = user
+        self.requests: list[Request] = []
         self.timeout = 10 # Seconds to wait for the server to respond
     def start_connection(self, cwd: str) -> None:
         '''
@@ -145,14 +146,19 @@ class Client():
         Send a request to the server
         '''
         if self.conn is None:
+            # If the connection is lost, retry the connection (not during sending a request)
             print("No active connection to the server!")
-            return None
+            self.retry_connection()
         if self.service is None:
-            print("No active connection to the server!")
-            return None
+            print("No active service available!")
+            # If the connection is lost, retry the connection (not during sending a request)
+            self.retry_connection()
         try:
+            # get the request from the queue 
+            curr_request: Request = self.requests[0]
+            # Case where the request is send and server fails
             # Send request to the server (example method call)
-            request_action: str = self.request.action
+            request_action: str = curr_request.action
             response: Optional[Response] = None
             match request_action:
                 case 'touch':
@@ -207,3 +213,25 @@ class Client():
             print(f"An error occurred: {error}")
             return {"error": str(error)}
         return {}
+    def retry_connection(self) -> None:
+        '''
+        Retry the connection to the server
+        '''
+        ### PUT THE IPS IN THE CONFIG FILE FROM THE SERVERS
+        registry: UDPRegistryClient = \
+                UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
+        discovered_services: (list[tuple] | int | Any) = \
+            discover("MASTERSERVER", registrar=registry)
+        for service in discovered_services:
+            self.conn: rpyc.Connection = rpyc.connect(
+                service[0],
+                service[1],
+                config={"allow_public_attrs": True
+            })
+        if self.conn is None:
+            print("No available services found from retry_connection client_impl.")
+            return
+        self.service: IDropBoxServiceV1 = self.conn.root
+        print(f"Connected to server: {self.conn}")
+        self.service.set_client_path(os.getcwd(), self.user)
+        print("Connection re-established from retry connection client_impl.")
