@@ -118,6 +118,7 @@ class NodeCoordinator(TaskProcessor):
         UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
         print("Discovering services...", registry.list())
         discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)
+        print("Discovered services", discovered_services)
         for service in discovered_services:
             try:
                 conn: rpyc.Connection = rpyc.connect(

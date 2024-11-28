@@ -60,7 +60,9 @@ class InitService():
                 file_management_service=file_management_service,
                 health_service=health_service,
                 election_service=election_service,
-                factory=self.factory
+                factory=self.factory,
+                ip_service=config.server_ip,
+                port=config.port
             )
             # Check if the directory exists
             if not os.path.exists(DIR_NAME):

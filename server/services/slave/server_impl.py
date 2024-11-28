@@ -34,7 +34,9 @@ class DropBoxV1Service(
             file_management_service: IFileManagementService,
             health_service: IHealthService,
             election_service: IElection,
-            factory: IFactoryService
+            factory: IFactoryService,
+            ip_service: str,
+            port: int
         ) -> None:
         super().__init__(health_service)
         self.client_service: IClientServerService = client_service
@@ -45,6 +47,8 @@ class DropBoxV1Service(
         self.thread = None
         self.factory: IFactoryService = factory
         self.leader_ip: str = ""
+        self.set_ip_service(ip_service)
+        self.set_port(port)
 
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
