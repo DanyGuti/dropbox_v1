@@ -92,7 +92,8 @@ class InitService():
                 service=service,
                 auto_register=config.auto_register,
                 port=config.port,
-                registrar=config.registrar
+                registrar=config.registrar,
+                protocol_config={'allow_pickle': True}
             )
             service.set_thread(t.start())
             return t
@@ -100,7 +101,8 @@ class InitService():
             service=service,
             auto_register=config.auto_register,
             port=config.port,
-            registrar=config.registrar
+            registrar=config.registrar,
+            protocol_config={'allow_pickle': True}
         )
         print(f"Starting server on port {config.port}")
         if not isinstance(service, MasterServerService):

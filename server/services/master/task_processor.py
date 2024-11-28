@@ -55,8 +55,11 @@ class TaskProcessor:
         Dispatch the set client path to the slave
         '''
         try:
-            
             service: DropBoxV1Service = slave
+            print(f"Connected to slave server: {slave.get_server_id(), slave.get_ip_service()}")
+            response: Response = service.set_client_path(cwd, user)
+            print(f"Response: {response}, from task processor")
+            return response
         except ConnectionError as e:
             print(e)
             return Response(
@@ -64,9 +67,6 @@ class TaskProcessor:
                 message="Error dispatching request, set_client_path, TaskProcessor",
                 error=str(e)
             )
-        print(f"Connected to slave server: {slave.get_server_id(), slave.get_ip_service()}")
-        response: Response = service.set_client_path(cwd, user)
-        return response
     def process_dispatcher(self, request: Request) -> (Response | Exception):
         '''
         Process the dispatcher (from response of the slave and broadcast results)

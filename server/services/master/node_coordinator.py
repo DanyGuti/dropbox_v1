@@ -9,6 +9,7 @@ from server.imports.import_server_base import rpyc, Request, Response,\
     SERVERS_IP
 from server.services.slave.server_impl import DropBoxV1Service
 from server.services.master.task_processor import TaskProcessor
+from rpyc.utils.classic import obtain
 
 class NodeCoordinator(TaskProcessor):
     '''
@@ -41,6 +42,7 @@ class NodeCoordinator(TaskProcessor):
                             chunk=chunk,
                         )
                         print(f"Response: {response}")
+                        response = obtain(response)
                         if response.status_code == 0:
                             list_acks.append((slave_service.get_ip_service(), response))
                         else:
@@ -86,6 +88,7 @@ class NodeCoordinator(TaskProcessor):
                             user=user,
                             slave=slave_service,
                         )
+                        response = obtain(response)
                         if response.status_code == 0:
                             list_acks.append((slave_service.get_ip_service(), response))
                         else:
@@ -123,7 +126,8 @@ class NodeCoordinator(TaskProcessor):
             try:
                 conn: rpyc.Connection = rpyc.connect(
                     service[0],
-                    service[1]
+                    service[1],
+                    config={'allow_pickle': True, 'allow_all_attrs': True, 'allow_public_attrs': True},
                 )
                 service: DropBoxV1Service = conn.root
                 self.slave_connections[service] = conn

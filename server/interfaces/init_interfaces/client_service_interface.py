@@ -18,7 +18,7 @@ class IClientServerService(ABC):
         Wrapper to set the client directory state
         '''
     @abstractmethod
-    def set_client_path(self, cwd: str, user: str) -> str:
+    def set_client_path(self, cwd: str, user: str) -> Response:
         '''
         Get the health status of the server
         '''

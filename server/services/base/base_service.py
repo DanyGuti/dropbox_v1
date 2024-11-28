@@ -2,6 +2,7 @@
 This module provides the base server service
 '''
 from server.interfaces.common.health_interface import IHealthService
+from server.imports.import_server_base import rpyc
 
 class Service():
     '''
@@ -21,16 +22,19 @@ class Service():
         Set the server id
         '''
         self.server_id = server_id
+    @rpyc.exposed 
     def get_server_id(self) -> int:
         '''
         Get the server id
         '''
         return self.server_id
+    @rpyc.exposed
     def get_ip_service(self) -> str:
         '''
         Get the IP service
         '''
         return self.ip_service
+    @rpyc.exposed
     def get_port(self) -> int:
         '''
         Get the port

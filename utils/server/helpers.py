@@ -14,5 +14,5 @@ def normalize_path(path: str) -> str:
     '''
     return os.path.normpath(path)
 
-SERVERS_IP: str = "158.227.124.232"
+SERVERS_IP: str = "158.227.127.19"
 SLAVE_SERVER_PORT: int = 50083
