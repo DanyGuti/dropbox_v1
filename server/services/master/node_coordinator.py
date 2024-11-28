@@ -7,7 +7,7 @@ from rpyc.utils.factory import discover
 from rpyc.utils.factory import DiscoveryError
 from server.imports.import_server_base import rpyc, Request, Response,\
     SERVERS_IP
-from server.services.slave.server_impl import DropbBoxV1Service
+from server.services.slave.server_impl import DropBoxV1Service
 from server.services.master.task_processor import TaskProcessor
 
 class NodeCoordinator(TaskProcessor):
@@ -16,7 +16,7 @@ class NodeCoordinator(TaskProcessor):
     '''
     def __init__(self) -> None:
         super().__init__()
-        self.slaves: dict[int: DropbBoxV1Service] = {}
+        self.slaves: dict[int: DropBoxV1Service] = {}
         self.slave_connections: dict[tuple, rpyc.Connection] = {}
         self.slaves_health: list[float] = []
     def distribute_load_slaves(
@@ -31,7 +31,7 @@ class NodeCoordinator(TaskProcessor):
         try:
             list_acks: list = sequence_events[-1]["acks"]
             for server_id, slave_service in self.slaves.items():
-                slave_service: DropbBoxV1Service
+                slave_service: DropBoxV1Service
                 server_id: int
                 if server_id == slave_service.get_server_id():
                     try:
@@ -77,7 +77,7 @@ class NodeCoordinator(TaskProcessor):
         try:
             list_acks: list = sequence_events[-1]["acks"]
             for server_id, slave_service in self.slaves.items():
-                slave_service: DropbBoxV1Service
+                slave_service: DropBoxV1Service
                 server_id: int
                 if server_id == slave_service.get_server_id():
                     try:
@@ -124,18 +124,19 @@ class NodeCoordinator(TaskProcessor):
                     service[0],
                     service[1]
                 )
-                service: DropbBoxV1Service = conn.root
+                service: DropBoxV1Service = conn.root
                 self.slave_connections[service] = conn
                 self.slaves[service.get_server_id()] = service
             except DiscoveryError as e:
                 print(f"Error: {e}")
             except Exception as e:
                 print(f"Error: {e}")
+        print("Slaves set", self.slaves)
     def get_slaves_health(self) -> (list[float]):
         '''
         Get the list of slaves health
         '''
-    def get_slaves(self) -> (list[dict[int: DropbBoxV1Service]]):
+    def get_slaves(self) -> (list[dict[int: DropBoxV1Service]]):
         '''
         Get the slaves
         '''

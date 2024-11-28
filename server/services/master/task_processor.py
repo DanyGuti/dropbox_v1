@@ -2,7 +2,7 @@
 Task Processor module
 '''
 from server.imports.import_server_base import Request, Response
-from server.services.slave.server_impl import DropbBoxV1Service
+from server.services.slave.server_impl import DropBoxV1Service
 
 class TaskProcessor:
     '''
@@ -14,14 +14,14 @@ class TaskProcessor:
     def dispatch_req_slave(
         self,
         request: Request,
-        slave: DropbBoxV1Service,
+        slave: DropBoxV1Service,
         chunk: int
     ) -> (Response | Exception):
         '''
         Dispatch the request to the slave
         '''
         try:
-            service: DropbBoxV1Service = slave
+            service: DropBoxV1Service = slave
         except ConnectionError as e:
             print(e)
             return Response(status_code=1,\
@@ -50,13 +50,13 @@ class TaskProcessor:
                 message="Error dispatching request, TaskProcessor",
                 error=str(e)
             )
-    def disptach_set_client_path(self, cwd: str, user: str, slave: DropbBoxV1Service) -> Response:
+    def disptach_set_client_path(self, cwd: str, user: str, slave: DropBoxV1Service) -> Response:
         '''
         Dispatch the set client path to the slave
         '''
         try:
             
-            service: DropbBoxV1Service = slave
+            service: DropBoxV1Service = slave
         except ConnectionError as e:
             print(e)
             return Response(

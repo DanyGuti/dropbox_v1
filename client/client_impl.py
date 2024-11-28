@@ -14,7 +14,7 @@ class Client():
     
     Attributes:
         conn: rpyc.Connection
-        service: DropbBoxV1Service
+        service: DropBoxV1Service
         request: Request
         responseQueue: queue.Queue[Response]
         lock: threading.Lock
@@ -46,7 +46,7 @@ class Client():
             #     config={"allow_public_attrs": True}
             # ).root.talk_to_slave(self.request)
             # print(talk_to_master)
-            # registry: (list[tuple]) = rpyc.discover("DROPBBOXV1")  # Discover the registry server
+            # registry: (list[tuple]) = rpyc.discover("DROPBOXV1")  # Discover the registry server
             registry: UDPRegistryClient = \
                 UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
             discovered_services: (list[tuple] | int | Any) = \

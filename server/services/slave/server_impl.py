@@ -4,9 +4,9 @@ Server side of the dropbox application
 from typing import Any
 import time
 import threading
-from utils.server.helpers import SERVERS_IP
 from rpyc.utils.server import UDPRegistryClient
 from rpyc.utils.factory import discover
+from utils.server.helpers import SERVERS_IP
 
 from server.imports.import_server_base import subprocess
 from server.services.base.base_service import Service
@@ -20,7 +20,7 @@ from server.interfaces.local_fms_interface import IFileManagementService
 from server.interfaces.init_interfaces.factory_interface import IFactoryService
 
 @rpyc.service
-class DropbBoxV1Service(
+class DropBoxV1Service(
     IDropBoxServiceV1,
     Service,
     rpyc.Service,

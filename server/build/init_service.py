@@ -10,7 +10,7 @@ from server.interfaces.election_interface import IElection
 from server.interfaces.local_fms_interface import IFileManagementService
 from server.services.master.master_server import MasterServerService
 from server.services.master.node_coordinator import NodeCoordinator
-from server.services.slave.server_impl import DropbBoxV1Service
+from server.services.slave.server_impl import DropBoxV1Service
 from server.interfaces.init_interfaces.factory_interface import IFactoryService
 DIR_NAME: str = "dropbox_genial_loli_app"
 
@@ -55,7 +55,7 @@ class InitService():
                 self.factory.create_file_management_service()
             election_service: IElection = self.factory.create_election_service()
             health_service: IHealthService  = self.factory.create_health_service()
-            server_impl: DropbBoxV1Service = DropbBoxV1Service(
+            server_impl: DropBoxV1Service = DropBoxV1Service(
                 client_service=client_service,
                 file_management_service=file_management_service,
                 health_service=health_service,
@@ -79,7 +79,7 @@ class InitService():
             sys.exit(0)
     def start_server(
             self,
-            service: (MasterServerService | DropbBoxV1Service),
+            service: (MasterServerService | DropBoxV1Service),
             config: ServerConfig
         ) -> (ForkingServer | ThreadedServer):
         '''
@@ -101,9 +101,7 @@ class InitService():
             registrar=config.registrar
         )
         print(f"Starting server on port {config.port}")
-        if isinstance(service, MasterServerService):
-            service.node_coordinator.set_slaves()
-        else:
+        if not isinstance(service, MasterServerService):
             service.set_leader_ip()
         service.set_thread(t.start())
         print(f"Server started on port, after {config.port}")
