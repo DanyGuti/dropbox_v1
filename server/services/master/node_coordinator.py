@@ -2,6 +2,7 @@
 Node coordinator module
 '''
 from typing import Any
+from rpyc.utils.classic import obtain
 from rpyc.utils.server import UDPRegistryClient
 from rpyc.utils.factory import discover
 from rpyc.utils.factory import DiscoveryError
@@ -9,7 +10,6 @@ from server.imports.import_server_base import rpyc, Request, Response,\
     SERVERS_IP
 from server.services.slave.server_impl import DropBoxV1Service
 from server.services.master.task_processor import TaskProcessor
-from rpyc.utils.classic import obtain
 
 class NodeCoordinator(TaskProcessor):
     '''
@@ -127,7 +127,11 @@ class NodeCoordinator(TaskProcessor):
                 conn: rpyc.Connection = rpyc.connect(
                     service[0],
                     service[1],
-                    config={'allow_pickle': True, 'allow_all_attrs': True, 'allow_public_attrs': True},
+                    config={
+                        'allow_pickle': True,
+                        'allow_all_attrs': True,
+                        'allow_public_attrs': True
+                    },
                 )
                 service: DropBoxV1Service = conn.root
                 self.slave_connections[service] = conn
@@ -136,6 +140,7 @@ class NodeCoordinator(TaskProcessor):
                 print(f"Error: {e}")
             except Exception as e:
                 print(f"Error: {e}")
+        self.broadcast_slaves()
         print("Slaves set", self.slaves)
     def get_slaves_health(self) -> (list[float]):
         '''
@@ -146,3 +151,22 @@ class NodeCoordinator(TaskProcessor):
         Get the slaves
         '''
         return self.slaves
+    @rpyc.exposed
+    def broadcast_slaves(self) -> None:
+        '''
+        Broadcast the nodes in registry to slaves
+        '''
+        slaves_to_broadcast: list[tuple[str, int]] = []
+        # Normalize dictionary, obtaining only the (server_id, server_port)
+        for (server_id, server_port), _ in self.slave_connections.items():
+            server_id: str
+            server_port: int
+            slaves_to_broadcast.append((server_id, server_port))
+
+        for _, slave_service in self.slaves.items():
+            slave_service: DropBoxV1Service
+            ## Set the (ip, port) of the slaves to all registred nodes
+            try:
+                slave_service.election_service.set_slaves_broadcasted(slaves_to_broadcast)
+            except Exception as e:
+                print(f"Error broadcasting slaves from 'broadcast_slaces': {e}")

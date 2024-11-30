@@ -12,7 +12,6 @@ class IElection(ABC):
     def send_election_message(
         self,
         message_election: str,
-        nodes: list[tuple[str, int]],
         curr_node: int
     ) -> tuple[list[str], int]:
         '''
@@ -32,4 +31,9 @@ class IElection(ABC):
     def receive_election_message(self, message_election: str) -> str:
         '''
         Receive an election message
+        '''
+    @abstractmethod
+    def set_slaves_broadcasted(self, slaves: list[tuple[str, int]]) -> None:
+        '''
+        Receive the slaves broadcasted from the Coordinator
         '''
