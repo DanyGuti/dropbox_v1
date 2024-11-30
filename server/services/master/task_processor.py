@@ -50,14 +50,14 @@ class TaskProcessor:
                 message="Error dispatching request, TaskProcessor",
                 error=str(e)
             )
-    def disptach_set_client_path(self, cwd: str, user: str, slave: DropBoxV1Service) -> Response:
+    def disptach_set_client_path(self, request: Request, slave: DropBoxV1Service) -> Response:
         '''
         Dispatch the set client path to the slave
         '''
         try:
             service: DropBoxV1Service = slave
             print(f"Connected to slave server: {slave.get_server_id(), slave.get_ip_service()}")
-            response: Response = service.set_client_path(cwd, user)
+            response: Response = service.set_client_path(request)
             print(f"Response: {response}, from task processor")
             return response
         except ConnectionError as e:

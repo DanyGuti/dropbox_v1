@@ -5,13 +5,12 @@ inherits from ClientWatcher
 from client.imports.import_base import os, queue, Optional,\
     threading, rpyc, UDPRegistryClient,\
         discover, Request, Response, SERVERS_IP, IDropBoxServiceV1, \
-        DiscoveryError, Any, time
+        DiscoveryError, Any, time, Task
 RETRY_DELAY: int = 5
 
 class Client():
     '''
     Client class to interact with the server
-    
     Attributes:
         conn: rpyc.Connection
         service: DropBoxV1Service
@@ -29,24 +28,12 @@ class Client():
         self.requests: list[Request] = []
         self.timeout = 10 # Seconds to wait for the server to respond
         self.retries_conn = 3 # Number of retries to attempt
+        self.invocation_id: int = 0
     def start_connection(self, cwd: str) -> None:
         '''
         Start connection to the server (Service)
         '''
         try:
-            # self.conn: rpyc.Connection = rpyc.connect(
-            #     IP_ADDRESS_SERVER,
-            #     50082,
-            #     config={"allow_public_attrs": True}
-            # )
-            # self.service: IDropBoxServiceV1 = self.conn.root
-            # talk_to_master = rpyc.connect(
-            #     IP_ADDRESS_SERVER,
-            #     50081,
-            #     config={"allow_public_attrs": True}
-            # ).root.talk_to_slave(self.request)
-            # print(talk_to_master)
-            # registry: (list[tuple]) = rpyc.discover("DROPBOXV1")  # Discover the registry server
             registry: UDPRegistryClient = \
                 UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
             discovered_services: (list[tuple] | int | Any) = \
@@ -62,24 +49,18 @@ class Client():
                 return
             self.service: IDropBoxServiceV1 = self.conn.root
             print(f"Connected to server: {self.conn}")
-            # self.service: IDropBoxServiceV1 = None
-            # # registry = rpyc.connect("localhost", 18861)  # Default port for the registry server
-            # for service in registry:
-            #     self.conn: rpyc.Connection  = rpyc.connect(
-            #         service[0],
-            #         service[1],
-            #         config={"allow_public_attrs": True
-            #     })  # Store the connection
-            #     self.service: IDropBoxServiceV1 = self.conn.root  # Get the root of the service
-            #     print(f"Connected to server: {self.conn}")
-            #     if self.service:
-            #         print("Connected to the service successfully.")
-            #         break  # Exit the loop if successfully connected
-            # if self.service is None:
-            #     print("No available services found.")
-            #     return
-            # Set the client path when the connection is established
-            self.service.set_client_path(cwd, self.user)
+            request : Request = Request(
+                action="set_directory",
+                is_directory=True,
+                src_path=cwd,
+                task=Task(
+                    id_client=1,
+                    user=self.user,
+                    id_task=self.invocation_id
+                )
+            )
+            self.service.set_client_path(request)
+            self.invocation_id += 1
         except (KeyboardInterrupt, SystemExit):
             print("Exiting...")
             self.conn.close()
@@ -267,12 +248,25 @@ class Client():
                         self.conn: rpyc.Connection = rpyc.connect(
                             service[0],
                             service[1],
-                            config={"allow_public_attrs": True
-                        })
+                            config={
+                                "allow_public_attrs": True,
+                            }
+                        )
+                        request : Request = Request(
+                            action="set_directory",
+                            is_directory=True,
+                            src_path=os.getcwd(),
+                            task=Task(
+                                id_client=1,
+                                user=self.user,
+                                id_task=self.invocation_id
+                            )
+                        )
                         self.service: IDropBoxServiceV1 = self.conn.root
                         print(f"Connected to server: {service[0]}:{service[1]}")
-                        self.service.set_client_path(os.getcwd(), self.user)
+                        self.service.set_client_path(request)
                         print("Connection successfully established.")
+                        self.invocation_id += 1
                         self.callback_retry()
                     except Exception as conn_err:
                         print(f"Failed to connect to service {service[0]}:{service[1]}: {conn_err}")

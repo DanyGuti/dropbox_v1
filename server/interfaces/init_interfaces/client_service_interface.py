@@ -18,14 +18,14 @@ class IClientServerService(ABC):
         Wrapper to set the client directory state
         '''
     @abstractmethod
-    def set_client_path(self, cwd: str, user: str) -> Response:
+    def set_client_path(self, request: Request) -> Response:
         '''
-        Get the health status of the server
+        Mount the path of the client internally
         '''
     @abstractmethod
     def set_client_state_path(self, request: Request) -> Response:
         '''
-        Set the health status of the server
+        On every request, apply the wrapper to set path
         '''
     @abstractmethod
     def get_client_path(self) -> str:

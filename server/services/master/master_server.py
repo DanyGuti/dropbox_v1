@@ -89,15 +89,17 @@ class MasterServerService(
         '''
         print("Goodbye client!", conn)
     @rpyc.exposed
-    def set_client_path(self, cwd: str, user: str) -> None:
+    def set_client_path(self, request: Request) -> None:
         self.node_coordinator.set_slaves()
+        cwd_client : str = request.src_path
+        req_client : str = request.task.user
         self.sequence_events.append({
             "timestamp": time.time(),
-            "user": user,
+            "user": request.task.user,
             "request": "set_client_path",
             "acks": []
         })
-        return self.node_coordinator.set_client_path(cwd, user, self.sequence_events)
+        return self.node_coordinator.set_client_path(cwd_client, req_client, self.sequence_events)
     @rpyc.exposed
     @apply_slave_distribution_wrapper
     def upload_chunk(self, request: Request, chunk: int) -> (Response | Exception):

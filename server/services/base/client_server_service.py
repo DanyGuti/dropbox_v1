@@ -49,18 +49,20 @@ class ClientServerService(IClientServerService):
                 return result  # Exit early if setting client path fails
             return method(self, *args, **kwargs)
         return wrapper
-    def set_client_path(self, cwd: str, user: str) -> Response:
+    def set_client_path(self, request: Request) -> Response:
         '''
         Set the client path when the connection is established
         '''
-        self.client_path = cwd
+        client_path = request.src_path
+        user: str = request.task.user
         # Set the clients paths
-        self.clients_paths[user] = cwd
+        self.clients_paths[user] = client_path
         return Response(
             status_code=0,
             message="Client path set",
             error=None,
-            time_sent=time.time()
+            time_sent=time.time(),
+            id_response=request.task.id_task
         )
     def get_client_path(self) -> str:
         '''

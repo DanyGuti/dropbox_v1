@@ -69,8 +69,7 @@ class NodeCoordinator(TaskProcessor):
             )
     def set_client_path(
         self,
-        cwd: str,
-        user: str,
+        request: Request,
         sequence_events: list[dict[str, object]]
     ) -> None:
         '''
@@ -84,8 +83,7 @@ class NodeCoordinator(TaskProcessor):
                 if server_id == slave_service.get_server_id():
                     try:
                         response: Response = self.disptach_set_client_path(
-                            cwd=cwd,
-                            user=user,
+                            request=request,
                             slave=slave_service,
                         )
                         response = obtain(response)

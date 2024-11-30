@@ -19,7 +19,7 @@ class IDropBoxServiceV1(ABC):
         Method to be called when a connection is closed
         '''
     @abstractmethod
-    def set_client_path(self, cwd: str, user: str) -> Response:
+    def set_client_path(self, request: Request) -> Response:
         '''
         Set the client path
         '''
