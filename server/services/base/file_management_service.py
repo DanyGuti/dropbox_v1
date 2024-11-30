@@ -2,6 +2,7 @@
 This file contains the DropBoxService class,
 which is responsible for handling the file operations
 '''
+import time
 from server.imports.import_server_base import os, shutil,\
     Response, get_diff_path, normalize_path
 from server.interfaces.local_fms_interface import IFileManagementService
@@ -29,14 +30,16 @@ class FileManagementService(
             return Response(
                 message=file_name \
                 + " succesfully modified file!",
-                status_code=0
+                status_code=0,
+                time_sent=time.time()
             )
         except (OSError, IOError) as e:
             print(f"Error: {e}")
             return Response(
                 error=e,
                 message=f'Error in action: {action}, error: {e}',
-                status_code=13
+                status_code=13,
+                time_sent=time.time()
             )
     def write_chunk_mv(
         self,
@@ -66,11 +69,17 @@ class FileManagementService(
             return Response(
                 message=file_name +\
                 " succesfully moved file!",
-                status_code=0
+                status_code=0,
+                time_sent=time.time()
             )
         except (OSError, IOError) as e:
             print(f"Error: {e}")
-            return Response(error=e, message="Error: ", status_code=13)
+            return Response(
+                error=e,
+                message="Error: ",
+                status_code=13,
+                time_sent=time.time()
+            )
     def file_creation(
         self,
         file_name: str,
@@ -81,15 +90,29 @@ class FileManagementService(
         '''
         try:
             open(server_relative_path, 'x', encoding='utf-8')
-            return Response(message=file_name + " succesfully touched!")
+            return Response(
+                message=file_name + " succesfully touched!",
+                status_code=0,
+                time_sent=time.time()
+            )
         except FileExistsError:
             print(f"Something went wrong: the file {file_name}\
                 already exists in the given path."
             )
-            return Response(error="FileExistsError", message="Error: ", status_code=6)
+            return Response(
+                error="FileExistsError",
+                message="Error: ",
+                status_code=6,
+                time_sent=time.time()
+            )
         except (OSError, IOError) as e:
             print(f"Error: {e}")
-            return Response(error=e, message=f'Error en action: {e}', status_code=13)
+            return Response(
+                error=e,
+                message=f'Error en action: {e}',
+                status_code=13,
+                time_sent=time.time()
+            )
     def file_deletion(
         self,
         server_relative_path: str,
@@ -100,17 +123,27 @@ class FileManagementService(
         '''
         try:
             os.remove(server_relative_path)
-            return Response(message=file_name + " succesfully removed!", status_code=0)
+            return Response(
+                message=file_name + " succesfully removed!",
+                status_code=0,
+                time_sent=time.time()
+            )
         except FileNotFoundError:
             print(f"Something went wrong: file {file_name} not found.")
             return Response(error="FileNotFoundError",
                             message="Something went wrong: file " +\
                                 {file_name} + " not found.",
-                            status_code=5
+                            status_code=5,
+                            time_sent=time.time()
                         )
         except (OSError, IOError) as e:
             print(f"Error: {e}")
-            return Response(error=e, message="Error: ", status_code=13)
+            return Response(
+                error=e,
+                message="Error: ",
+                status_code=13,
+                time_sent=time.time()
+            )
     def dir_creation(
         self,
         dir_name: str,
@@ -121,16 +154,30 @@ class FileManagementService(
         '''
         try:
             os.mkdir(server_relative_path)
-            return Response(message=dir_name + " succesfully cretated directory!")
+            return Response(
+                message=dir_name + " succesfully cretated directory!",
+                status_code=0,
+                time_sent=time.time()
+            )
 
         except FileExistsError:
             print(f"Something went wrong: the directory {dir_name}\
                 already exists in the given path."
             )
-            return Response(error = "FileExistsError", message = "Error: ", status_code = 6)
+            return Response(
+                error = "FileExistsError",
+                message = "Error: ",
+                status_code = 6,
+                time_sent=time.time()
+            )
         except (OSError, IOError) as e:
             print(f"Error: {e}")
-            return Response(error=e, message="Error: ", status_code=13)
+            return Response(
+                error=e,
+                message="Error: ",
+                status_code=13,
+                time_sent=time.time()
+            )
     def dir_deletion(
         self,
         server_relative_path: str,
@@ -141,11 +188,25 @@ class FileManagementService(
         '''
         try:
             os.rmdir(server_relative_path)
-            return Response(message = dir_name + " succesfully deleted directory!")
+            return Response(
+                message = dir_name + " succesfully deleted directory!",
+                status_code = 0,
+                time_sent = time.time
+            )
 
         except FileNotFoundError:
             print(f"Something went wrong: the directory {dir_name} not found.")
-            return Response(error = "FileNotFoundError", message = "Error: ", status_code = 5)
+            return Response(
+                error = "FileNotFoundError",
+                message = "Error: ",
+                status_code = 5,
+                time_sent = time.time()
+            )
         except (OSError, IOError) as e:
             print(f"Something went wrong: the directory {dir_name} is not empty.")
-            return Response(error=e, message="Error: ", status_code=13)
+            return Response(
+                error=e,
+                message="Error: ",
+                status_code=13,
+                time_sent=time.time()
+            )

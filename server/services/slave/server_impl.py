@@ -105,6 +105,7 @@ class DropBoxV1Service(
                 chunk,
                 request.action
             )
+            response.id_response = request.task.id_task
             self.client_service.append_to_logs(request, response)
             return response
         if request.action == 'mv':
@@ -114,9 +115,17 @@ class DropBoxV1Service(
                 request.file_name,
                 self.server_relative_path
             )
+            response.id_response = request.task.id_task
             self.client_service.append_to_logs(request, response)
             return response
-        response = Response(error="ActionError", message="Error: ", status_code=3)
+        response.id_response = request.task.id_task
+        response = Response(
+            error="ActionError",
+            message="Error: ",
+            status_code=3,
+            time_sent=time.time(),
+            id_response=request.task.id_task
+        )
         self.client_service.append_to_logs(
             request,
             response
@@ -128,40 +137,52 @@ class DropBoxV1Service(
         '''
         Create a file on the server
         '''
-        return self.file_management_service.file_creation(
+        response: Response = self.file_management_service.file_creation(
             request.file_name,
             self.client_service.get_server_relative_path()
         )
+        response.id_response = request.task.id_task
+        self.client_service.append_to_logs(request, response)
+        return response
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     def file_deletion(self, request: Request) -> Response: #rm
         '''
         Delete a file on the server
         '''
-        return self.file_management_service.file_deletion(
+        response: Response = self.file_management_service.file_deletion(
             self.client_service.get_server_relative_path(),
             request.file_name,
         )
+        response.id_response = request.task.id_task
+        self.client_service.append_to_logs(request, response)
+        return response
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     def dir_creation(self, request: Request) -> Response: #mkdir
         '''
         Create a directory on the server
         '''
-        return self.file_management_service.dir_creation(
+        response: Response = self.file_management_service.dir_creation(
             request.file_name,
             self.client_service.get_server_relative_path()
         )
+        response.id_response = request.task.id_task
+        self.client_service.append_to_logs(request, response)
+        return response
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     def dir_deletion(self, request: Request) -> Response: #rmdir
         '''
         Delete a directory on the server
         '''
-        return self.file_management_service.dir_deletion(
+        response: Response = self.file_management_service.dir_deletion(
             self.client_service.get_server_relative_path(),
             request.file_name
         )
+        response.id_response = request.task.id_task
+        self.client_service.append_to_logs(request, response)
+        return response
     def promote_self_to_master(self) -> None:
         '''
         Promote self to master
