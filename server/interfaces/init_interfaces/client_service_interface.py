@@ -37,3 +37,8 @@ class IClientServerService(ABC):
         '''
         Get the server relative path
         '''
+    @abstractmethod
+    def append_to_logs(self, request: Request, response: Response) -> None:
+        '''
+        Append to the slave the (invocation, response)
+        '''

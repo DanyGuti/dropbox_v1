@@ -2,9 +2,9 @@
 Module for the client_server_service
 '''
 
+import time
 from server.imports.import_server_base import os, Request, Callable, Response
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
-import time
 
 def get_diff_path(path: str, client_path: str) -> str:
     '''
@@ -25,6 +25,10 @@ class ClientServerService(IClientServerService):
         self.client_path: str = ""
         self.clients_paths: dict[str, str] = {}
         self.server_relative_path: str = os.path.join(os.getcwd() + "/dropbox_genial_loli_app")
+        self.clients_service_operations: dict[list[tuple[int, Response]]] = {}
+        # {
+        #  client_id : [(invocation1, Response), (invocation2, Response)],
+        # } ensuring linearizability
     @staticmethod
     def apply_set_client_dir_state_wrapper(
         method: Callable[['ClientServerService',
@@ -131,3 +135,14 @@ class ClientServerService(IClientServerService):
         Get the server relative path
         '''
         return self.server_relative_path
+    def append_to_logs(self, request: Request, response: Response) -> None:
+        '''
+        Append to the log of (invocation, response)
+        '''
+        # Steps
+        # 1. Get the client id from the request.task.id_client
+        # 2. Get the list of tuples from: dict[client_id]
+        # 3. Append to that list(request.task.id_task, response)
+        list_invocations: list[tuple[int, Response]] = \
+                self.clients_service_operations[request.task.id_client]
+        list_invocations.append(request.task.id_task, response)

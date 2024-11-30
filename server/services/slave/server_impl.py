@@ -36,7 +36,7 @@ class DropBoxV1Service(
             election_service: IElection,
             factory: IFactoryService,
             ip_service: str,
-            port: int
+            port: int,
         ) -> None:
         super().__init__(health_service)
         self.client_service: IClientServerService = client_service
@@ -95,21 +95,31 @@ class DropBoxV1Service(
         print(f"Uploading chunk of size {len(chunk)} bytes...")
         #Caso chunk vacio-- file by chunk empty
         self.server_relative_path: str = self.client_service.get_server_relative_path()
+        response: Response = None
         if request.action in ['file_created', 'modified', 'touch', 'cp', 'created']:
-            return self.file_management_service.write_chunk_no_mv(
+            response =  self.file_management_service.write_chunk_no_mv(
                 request.file_name,
                 self.server_relative_path,
                 chunk,
                 request.action
             )
+            self.client_service.append_to_logs(request, response)
+            return response
         if request.action == 'mv':
-            return self.file_management_service.write_chunk_mv(
+            response = self.file_management_service.write_chunk_mv(
                 self.client_service.get_server_relative_path(),
                 request.destination_path,
                 request.file_name,
                 self.server_relative_path
             )
-        return Response(error="ActionError", message="Error: ", status_code=3)
+            self.client_service.append_to_logs(request, response)
+            return response
+        response = Response(error="ActionError", message="Error: ", status_code=3)
+        self.client_service.append_to_logs(
+            request,
+            response
+        )
+        return response
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     def file_creation(self, request: Request) -> Response: #touch

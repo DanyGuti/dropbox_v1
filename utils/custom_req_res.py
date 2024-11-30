@@ -20,6 +20,7 @@ class Response:
     retry: bool = False
     time_sent: time = 0
     status_code: int = 0
+    id_response: int = 0
 
 @dataclass
 class Request(Task):
