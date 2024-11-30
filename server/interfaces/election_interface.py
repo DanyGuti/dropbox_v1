@@ -37,3 +37,8 @@ class IElection(ABC):
         '''
         Receive the slaves broadcasted from the Coordinator
         '''
+    @abstractmethod
+    def get_slaves_broadcasted(self) -> list[tuple[str, int]]:
+        '''
+        Get the slaves broadcasted from the Coordinator
+        '''

@@ -247,7 +247,7 @@ class DropBoxV1Service(
                 print(f"Error in the heartbeat subprocess {error}")
                 self.start_bully_algorithm(
                     "election",
-                    [(self.leader_ip, 50000), (SERVERS_IP, 50000)],
+                    self.election_service.get_slaves_broadcasted(),
                     self.get_server_id()
                 )
                 break

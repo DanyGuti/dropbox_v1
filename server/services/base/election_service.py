@@ -77,3 +77,8 @@ class Election(IElection):
         Receive the slaves broadcasted from the Coordinator
         '''
         self.nodes: list[tuple[str, int]] = obtain(slaves)
+    def get_slaves_broadcasted(self) -> list[tuple[str, int]]:
+        '''
+        Get the slaves broadcasted from the Coordinator
+        '''
+        return self.nodes
