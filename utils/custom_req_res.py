@@ -34,3 +34,4 @@ class Request(Task):
     task: Task = field(default_factory=Task)
     time_of_request: time = 0
     src_path: str = ""
+    chunks: bytes = b""

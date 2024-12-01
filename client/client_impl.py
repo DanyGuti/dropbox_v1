@@ -57,7 +57,8 @@ class Client():
                     id_client=1,
                     user=self.user,
                     id_task=self.invocation_id
-                )
+                ),
+                time_of_request=time.time()
             )
             self.service.set_client_path(request)
             self.invocation_id += 1
