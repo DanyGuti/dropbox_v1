@@ -25,7 +25,7 @@ class ClientServerService(IClientServerService):
         self.client_path: str = ""
         self.clients_paths: dict[str, str] = {}
         self.server_relative_path: str = os.path.join(os.getcwd() + "/dropbox_genial_loli_app")
-        self.clients_service_operations: dict[list[tuple[int, Response]]] = {}
+        self.clients_service_operations: dict[int, list[tuple[int, Response]]] = {}
         # {
         #  client_id : [(invocation1, Response), (invocation2, Response)],
         # } ensuring linearizability
@@ -148,3 +148,5 @@ class ClientServerService(IClientServerService):
         list_invocations: list[tuple[int, Response]] = \
                 self.clients_service_operations[request.task.id_client]
         list_invocations.append(request.task.id_task, response)
+    def get_operations_log(self) -> dict[list[tuple[int, Response]]]:
+        return self.clients_service_operations

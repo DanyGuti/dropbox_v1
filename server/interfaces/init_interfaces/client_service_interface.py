@@ -42,3 +42,8 @@ class IClientServerService(ABC):
         '''
         Append to the slave the (invocation, response)
         '''
+    @abstractmethod
+    def get_operations_log(self) -> dict[int, list[tuple[int, Response]]]:
+        '''
+        Getter of the operations made by the slave
+        '''

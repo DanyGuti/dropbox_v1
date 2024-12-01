@@ -5,9 +5,8 @@ from server.imports.import_server_base import os, sys, ForkingServer, ThreadedSe
 from server.imports.import_server_base import ServerConfig
 
 from server.interfaces.common.health_interface import IHealthService
-from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 from server.interfaces.election_interface import IElection
-from server.interfaces.local_fms_interface import IFileManagementService
+from server.interfaces.task_processor_interface import ITaskProcessorSlave
 from server.services.master.master_server import MasterServerService
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.slave.server_impl import DropBoxV1Service
@@ -50,20 +49,17 @@ class InitService():
         Create the slave service
         '''
         try:
-            client_service: IClientServerService = self.factory.create_client_service()
-            file_management_service: IFileManagementService = \
-                self.factory.create_file_management_service()
+            task_processor: ITaskProcessorSlave = self.factory.create_task_processor()
             election_service: IElection = self.factory.create_election_service()
             health_service: IHealthService  = self.factory.create_health_service()
             server_impl: DropBoxV1Service = DropBoxV1Service(
-                client_service=client_service,
-                file_management_service=file_management_service,
                 health_service=health_service,
                 election_service=election_service,
                 factory=self.factory,
-                ip_service=config.server_ip,
-                port=config.port
+                task_processor=task_processor,
             )
+            server_impl.set_ip_service(config.server_ip)
+            server_impl.set_port(config.port)
             # Check if the directory exists
             if not os.path.exists(DIR_NAME):
                 # If it doesn't exist, create it

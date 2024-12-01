@@ -9,6 +9,8 @@ from server.interfaces.common.health_interface import IHealthService
 from server.interfaces.local_fms_interface import IFileManagementService
 from server.services.base.file_management_service import FileManagementService
 from server.interfaces.election_interface import IElection
+from server.interfaces.task_processor_interface import ITaskProcessorSlave
+from server.services.slave.task_processor_impl import TaskProcessorSlave
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.master.master_server import MasterServerService
 from server.interfaces.init_interfaces.factory_interface import IFactoryService
@@ -46,4 +48,12 @@ class FactoryServices(IFactoryService):
         return MasterServerService(
             coordinator=NodeCoordinator(),
             health_service=HealthService(health_status=100.0)
+        )
+    def create_task_processor(self) -> ITaskProcessorSlave:
+        '''
+        Create the task processor
+        '''
+        return TaskProcessorSlave(
+            client_server_service=ClientServerService(),
+            file_management_service=FileManagementService()
         )
