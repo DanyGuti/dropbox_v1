@@ -13,9 +13,9 @@ from watchdog.events import FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent, FileClosedEvent
 
-from client import Client
-from custom_req_res import Request
-from system_event_handler import SystemEventHandler
+from client.client import Client
+from utils.custom_req_res import Request
+from server.system_event_handler import SystemEventHandler
 
 swp_file_pattern = r"^.*\.swp$"
 
@@ -192,13 +192,21 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                     accum_events.clear()
                     print("No event to process recognized")
                     continue
-               
 
 if __name__ == "__main__":
     client: Client = Client()
     client.start_connection(CWD)
     try:
         if client.conn:
+            try:
+                DIR_NAME: str = "dropbox_genial_loli_app"
+                # Check if the directory exists
+                if not os.path.exists(DIR_NAME):
+                    # If it doesn't exist, create it
+                    os.mkdir(DIR_NAME)
+                    print(f"Directory '{DIR_NAME}' created.")
+            except OSError as e:
+                client.handle_error(e)
             client_watcher: ClientWatcher = ClientWatcher(client_instance=client)
             client_watcher.start_watching()
     except KeyboardInterrupt:

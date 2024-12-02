@@ -9,8 +9,8 @@ import sys
 import rpyc
 import rpyc.core
 import rpyc.core.protocol
-from custom_req_res import Response
-from custom_req_res import Request
+from utils.custom_req_res import Response
+from utils.custom_req_res import Request
 
 
 # Revisar un mv de un file a otro file que no existe
