@@ -41,7 +41,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         self.client: Client = client_instance
         self._dispatcher: list = []
         self.last_event_time: time = time.time()  # Track the time of the last event
-        self.accumulation_timeout: float = 0.50
+        self.accumulation_timeout: float = 0.75
         self.lock: threading.Lock = threading.Lock()
         # self.root_path_stack: list = re.split(r'(\/)', CWD)
     # Call the parent class
