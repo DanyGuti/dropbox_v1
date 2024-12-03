@@ -13,13 +13,16 @@ from watchdog.events import FileSystemEvent, \
     FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
     FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent, FileClosedEvent
 
-from client import Client
-from custom_req_res import Request
-from system_event_handler import SystemEventHandler
+from client.client import Client
+from utils.custom_req_res import Request
+from server.system_event_handler import SystemEventHandler
 
 swp_file_pattern = r"^.*\.swp$"
-
+current_directory = os.getcwd()
+target_directory = os.path.join(current_directory, "dropbox_genial_loli_app")
+                                
 CWD: str = os.path.dirname(os.path.abspath(__file__))
+print(current_directory)
 
 # Grab the events from local system and send to server via rpyc (RPCs)
 class ClientWatcher(Client, SystemEventHandler): # type: ignore
@@ -38,7 +41,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         self.client: Client = client_instance
         self._dispatcher: list = []
         self.last_event_time: time = time.time()  # Track the time of the last event
-        self.accumulation_timeout: float = 0.50
+        self.accumulation_timeout: float = 0.75
         self.lock: threading.Lock = threading.Lock()
         # self.root_path_stack: list = re.split(r'(\/)', CWD)
     # Call the parent class
@@ -56,7 +59,8 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         Start watching for file system events
         '''
         observer: Observer = Observer() # type: ignore
-        observer.schedule(self, CWD, recursive=True)
+        print(target_directory)
+        observer.schedule(self, target_directory, recursive=True)
         observer.start()
         try:
             while True:
@@ -107,12 +111,16 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
             while len(self._dispatcher) > 0:
                 curr_event: FileSystemEvent = self._dispatcher.pop(0)
                 accum_events.append(curr_event)
+            print(accum_events)
             if(any (re.match(swp_file_pattern , e.src_path) for e in accum_events)):
                 accum_events = list(filter(lambda e : not re.match(swp_file_pattern , e.src_path), accum_events))
                 print(accum_events)
             while len(accum_events) > 0:
                 event: FileSystemEvent = accum_events[0]
-                if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent)):
+                if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent))\
+                      or ((len (accum_events) == 6) and all(isinstance(e, 
+                        (FileCreatedEvent, DirModifiedEvent, FileModifiedEvent, FileClosedEvent,\
+                            DirModifiedEvent)) for e in accum_events)):
                     file_event: FileSystemEvent = accum_events[1]
                     file_name: str = self.construct_curr_path(file_event.src_path)
                     accum_events.clear() # cp a file
@@ -192,13 +200,21 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                     accum_events.clear()
                     print("No event to process recognized")
                     continue
-               
 
 if __name__ == "__main__":
     client: Client = Client()
     client.start_connection(CWD)
     try:
         if client.conn:
+            try:
+                DIR_NAME: str = "dropbox_genial_loli_app"
+                # Check if the directory exists
+                if not os.path.exists(DIR_NAME):
+                    # If it doesn't exist, create it
+                    os.mkdir(DIR_NAME)
+                    print(f"Directory '{DIR_NAME}' created.")
+            except OSError as e:
+                client.handle_error(e)
             client_watcher: ClientWatcher = ClientWatcher(client_instance=client)
             client_watcher.start_watching()
     except KeyboardInterrupt:

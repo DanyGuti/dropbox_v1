@@ -7,9 +7,9 @@ import queue
 from typing import Optional
 import threading
 import rpyc
-from custom_req_res import Request, Response
-from dropbox_interface import IDropBoxServiceV1
-IP_ADDRESS_SERVER: str = "158.227.126.244"
+from utils.custom_req_res import Request, Response
+from server.dropbox_interface import IDropBoxServiceV1
+IP_ADDRESS_SERVER: str = "158.227.126.125"
 
 class Client():
     '''
