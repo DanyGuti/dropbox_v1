@@ -3,6 +3,7 @@ Server side of the dropbox application
 '''
 from typing import Callable
 import shutil
+import subprocess
 import os
 import sys
 
@@ -160,9 +161,9 @@ class DropbBoxV1Service(rpyc.Service):
             self.client_path: str = request.src_path
 
             # Check if the updated path exists
-            if not os.path.exists(self.server_relative_path):
-                print(f"Something went wrong: the directory {self.server_relative_path} not found.")
-                return False
+            # if not os.path.exists(self.server_relative_path):
+            #     print(f"Something went wrong: the directory {self.server_relative_path} not found.")
+            #     return False
             return True
         except (OSError, IOError) as e:
             print(f"Error: {e}")
@@ -203,8 +204,7 @@ class DropbBoxV1Service(rpyc.Service):
 
         elif request.action == "mv":
             dst_path: str = request.destination_path
-            print(dst_path)
-            print(self.server_relative_path)
+            init_state: str = self.server_relative_path
             try:
                 print(f"destination_path: {dst_path}")
                 src_path: str = self.server_relative_path
@@ -213,11 +213,8 @@ class DropbBoxV1Service(rpyc.Service):
                 new_relative_path: str = os.path.join(self.server_relative_path, diff_path)
                 # normalize
                 self.server_relative_path: str = normalize_path(new_relative_path)
-                # Handle the case when the file does not exist (create empty file)
-                if not os.path.exists(self.server_relative_path):
-                    with open(self.server_relative_path, "wb") as empty_file:
-                        empty_file.write(b'')
-                shutil.move(src_path, self.server_relative_path)
+                subprocess.call(["mv", src_path, self.server_relative_path])
+                self.server_relative_path: str = init_state
                 return Response(
                     message=request.file_name +\
                     " succesfully moved file!",
