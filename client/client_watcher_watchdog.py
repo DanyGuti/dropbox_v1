@@ -117,7 +117,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                 print(accum_events)
             while len(accum_events) > 0:
                 event: FileSystemEvent = accum_events[0]
-                if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent))\
+                if (len (accum_events) >= 4) and not isinstance(event, (FileMovedEvent))\
                       or ((len (accum_events) == 6) and all(isinstance(e, 
                         (FileCreatedEvent, DirModifiedEvent, FileModifiedEvent, FileClosedEvent,\
                             DirModifiedEvent)) for e in accum_events)):
