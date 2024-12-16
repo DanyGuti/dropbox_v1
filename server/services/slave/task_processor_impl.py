@@ -98,11 +98,10 @@ class TaskProcessorSlave(
         with self.lock:
             service_operations: dict[int, list[tuple[int, Response]]] =\
                 self.client_server_service.get_operations_log()
-            client_id_req: int = request.task.id_client
             incoming_task_id_req: int = request.task.id_task
 
             list_invocations: list[tuple[int, Response]] =\
-                service_operations[client_id_req]
+                service_operations[request.task.id_client]
 
             if len(list_invocations) == 0:
                 self.queue_processor[type_req].append(request)

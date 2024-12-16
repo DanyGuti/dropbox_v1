@@ -198,7 +198,6 @@ class NodeCoordinator(TaskDistributor):
         for _, slave_service in self.slaves.items():
             slave_service: DropBoxV1Service
             ## Set the (ip, port) of the slaves to all registred nodes
-            print(slave_service.election_service)
             try:
                 slave_service.election_service.set_slaves_broadcasted(slaves_to_broadcast)
             except Exception as e:
