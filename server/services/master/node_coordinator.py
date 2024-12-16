@@ -9,17 +9,51 @@ from rpyc.utils.factory import DiscoveryError
 from server.imports.import_server_base import rpyc, Request, Response,\
     SERVERS_IP
 from server.services.slave.server_impl import DropBoxV1Service
-from server.services.master.task_processor import TaskProcessor
+from server.services.master.task_distributor import TaskDistributor
+#CAmbios hechos 4
+from server.interfaces.local_fms_interface import IFileManagementService
 
-class NodeCoordinator(TaskProcessor):
+
+class NodeCoordinator(TaskDistributor):
     '''
     Load balancer class
     '''
-    def __init__(self) -> None:
+    def __init__(self, file_management_service: IFileManagementService) -> None:
         super().__init__()
         self.slaves: dict[int: DropBoxV1Service] = {}
         self.slave_connections: dict[tuple, rpyc.Connection] = {}
         self.slaves_health: list[float] = []
+        self.file_management_service: IFileManagementService = file_management_service
+
+    def self_apply_request (
+        self,
+        request: Request,
+        chunk: int,
+        sequence_events: list[dict[str, object]]
+    ) -> (Response | Exception):
+        task_action: str = request.action
+        try:
+            response: Response
+            match task_action:
+                case 'mv' | 'file_created' | 'cp' | 'modified':
+                    response = self.file_management_service.upload_chunk(request, chunk)
+                case 'touch':
+                    response = self.file_management_service.file_creation(request)
+                case 'rm':
+                    response = self.file_management_service.file_deletion(request)
+                case 'mkdir':
+                    response = self.file_management_service.dir_creation(request)
+                case 'rmdir':
+                    response = self.file_management_service.dir_deletion(request)
+            return response
+        except Exception as e:
+            print(e)
+            return Response(
+                status_code=1,
+                message="Error dispatching request, TaskDistributor",
+                error=str(e)
+            )
+    
     def distribute_load_slaves(
         self,
         request: Request,
@@ -41,6 +75,7 @@ class NodeCoordinator(TaskProcessor):
                             slave=slave_service,
                             chunk=chunk,
                         )
+
                         print(f"Response: {response}")
                         response = obtain(response)
                         if response.status_code == 0:
@@ -167,4 +202,4 @@ class NodeCoordinator(TaskProcessor):
             try:
                 slave_service.election_service.set_slaves_broadcasted(slaves_to_broadcast)
             except Exception as e:
-                print(f"Error broadcasting slaves from 'broadcast_slaces': {e}")
+                print(f"Error broadcasting slaves from 'broadcast_slaves': {e}")

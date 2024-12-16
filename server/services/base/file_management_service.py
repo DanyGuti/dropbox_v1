@@ -3,6 +3,8 @@ This file contains the DropBoxService class,
 which is responsible for handling the file operations
 '''
 import time
+#CAMBIOS HECHOS import subprocess
+import subprocess
 from server.imports.import_server_base import os, shutil,\
     Response, get_diff_path, normalize_path
 from server.interfaces.local_fms_interface import IFileManagementService
@@ -51,6 +53,8 @@ class FileManagementService(
         '''
         upload a chunk of a file to the server mv action
         '''
+        #CAMBIOS HECHOS 14/12 linea 207 server.py 1.4v Entregada
+        init_state: str = self.server_relative_path
         try:
             print(f"destination_path: {dst_path}")
             src_path: str = server_relative_path
@@ -60,12 +64,18 @@ class FileManagementService(
             # normalize
             server_relative_path: str = normalize_path(new_relative_path)
             # Handle the case when the file does not exist (create empty file)
+            '''
             print(f"Moving file from {src_path} to {server_relative_path}")
             print(diff_path)
             if not os.path.exists(server_relative_path):
                 with open(server_relative_path, "wb") as empty_file:
                     empty_file.write(b'')
             shutil.move(src_path, server_relative_path)
+            '''
+            #CAMBIOS HECHOS 14/12 linea 216 y 217 server.py 1.4v Entregada
+            subprocess.call(["mv", src_path, self.server_relative_path])
+            self.server_relative_path: str = init_state
+            
             return Response(
                 message=file_name +\
                 " succesfully moved file!",

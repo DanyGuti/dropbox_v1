@@ -10,6 +10,9 @@ from server.interfaces.task_processor_interface import ITaskProcessorSlave
 from server.services.master.master_server import MasterServerService
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.slave.server_impl import DropBoxV1Service
+from server.interfaces.local_fms_interface import IFileManagementService
+
+
 from server.interfaces.init_interfaces.factory_interface import IFactoryService
 DIR_NAME: str = "dropbox_genial_loli_app"
 
@@ -32,11 +35,22 @@ class InitService():
         Create the master service
         '''
         try:
-            node_coordinator: NodeCoordinator = NodeCoordinator()
+            
+            node_coordinator: NodeCoordinator = NodeCoordinator( self.factory.create_file_management_service() )
             master_service: MasterServerService = MasterServerService(
                 coordinator=node_coordinator,
                 health_service=None
             )
+            #CAMBIOS HECHOS
+            
+            if not os.path.exists(DIR_NAME):
+                # If it doesn't exist, create it
+                os.mkdir(DIR_NAME)
+                print(f"Directory '{DIR_NAME}' created.")
+            # Change to the directory
+            os.chdir(DIR_NAME)
+            print(f"Changed to directory: {os.getcwd()}")
+            
             self.start_server(master_service, config)
         except (OSError, IOError) as e:
             print(f"Error: {e}")
