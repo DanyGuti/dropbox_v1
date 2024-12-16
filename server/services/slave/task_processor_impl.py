@@ -101,7 +101,7 @@ class TaskProcessorSlave(
             incoming_task_id_req: int = request.task.id_task
 
             list_invocations: list[tuple[int, Response]] =\
-                service_operations[request.task.id_client]
+                service_operations.get(request.task.id_client, [])
 
             if len(list_invocations) == 0:
                 self.queue_processor[type_req].append(request)
@@ -133,9 +133,9 @@ class TaskProcessorSlave(
             request_to_task_css: str = "css"
             response: Response = None
             client_service_list: list[Request] =\
-                self.queue_processor[request_to_task_css]
+                self.queue_processor.get(request_to_task_css, [])
             fms_service_list: list[Request] =\
-                self.queue_processor[request_to_task_fms]
+                self.queue_processor.get(request_to_task_fms, [])
             if len(client_service_list) > 0 or len(fms_service_list) > 0:
                 with self.lock:
                     min_request: tuple[int, str] = (10000, "")
