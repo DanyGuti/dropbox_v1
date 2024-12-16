@@ -24,7 +24,7 @@ class IDropBoxServiceV1(ABC):
         Set the client path
         '''
     @abstractmethod
-    def upload_chunk(self, request: Request, chunk: int) -> Response:
+    def upload_chunk(self, request: Request) -> Response:
         '''
         Upload a chunk of a file to the server
         '''

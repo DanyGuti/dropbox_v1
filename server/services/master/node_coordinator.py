@@ -21,14 +21,13 @@ class NodeCoordinator(TaskDistributor):
     def __init__(self, file_management_service: IFileManagementService) -> None:
         super().__init__()
         self.slaves: dict[int: DropBoxV1Service] = {}
-        self.slave_connections: dict[tuple, rpyc.Connection] = {}
+        self.slave_connections: dict[DropBoxV1Service, rpyc.Connection] = {}
         self.slaves_health: list[float] = []
         self.file_management_service: IFileManagementService = file_management_service
 
     def self_apply_request (
         self,
         request: Request,
-        chunk: int,
         sequence_events: list[dict[str, object]]
     ) -> (Response | Exception):
         task_action: str = request.action
@@ -36,7 +35,7 @@ class NodeCoordinator(TaskDistributor):
             response: Response
             match task_action:
                 case 'mv' | 'file_created' | 'cp' | 'modified':
-                    response = self.file_management_service.upload_chunk(request, chunk)
+                    response = self.file_management_service.upload_chunk(request)
                 case 'touch':
                     response = self.file_management_service.file_creation(request)
                 case 'rm':
@@ -57,7 +56,6 @@ class NodeCoordinator(TaskDistributor):
     def distribute_load_slaves(
         self,
         request: Request,
-        chunk: int,
         sequence_events: list[dict[str, object]]
     ) -> (Response | Exception):
         '''
@@ -73,7 +71,6 @@ class NodeCoordinator(TaskDistributor):
                         response: Response = self.dispatch_req_slave(
                             request,
                             slave=slave_service,
-                            chunk=chunk,
                         )
 
                         print(f"Response: {response}")
@@ -151,7 +148,8 @@ class NodeCoordinator(TaskDistributor):
         Get the list of slaves
         '''
         registry: UDPRegistryClient = \
-        UDPRegistryClient(ip=SERVERS_IP, port=50081)  # Discover the registry server
+        UDPRegistryClient(ip="158.227.126.125", port=50081)  # Discover the registry server
+        print(registry)
         print("Discovering services...", registry.list())
         discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)
         print("Discovered services", discovered_services)
@@ -191,14 +189,16 @@ class NodeCoordinator(TaskDistributor):
         '''
         slaves_to_broadcast: list[tuple[str, int]] = []
         # Normalize dictionary, obtaining only the (server_id, server_port)
-        for (server_id, server_port), _ in self.slave_connections.items():
-            server_id: str
-            server_port: int
+        print(self.slave_connections)
+        for key in self.slave_connections.keys():
+            server_id: str = key.get_server_id()
+            server_port: int = key.get_port()
             slaves_to_broadcast.append((server_id, server_port))
 
         for _, slave_service in self.slaves.items():
             slave_service: DropBoxV1Service
             ## Set the (ip, port) of the slaves to all registred nodes
+            print(slave_service.election_service)
             try:
                 slave_service.election_service.set_slaves_broadcasted(slaves_to_broadcast)
             except Exception as e:

@@ -30,8 +30,7 @@ class ITaskProcessorSlave(ABC):
     def append_task(
         self,
         request: Request,
-        type_req: str,
-        chunk: bytes
+        type_req: str
     ) -> None:
         '''
         Append a new request to the processor (FIFO)

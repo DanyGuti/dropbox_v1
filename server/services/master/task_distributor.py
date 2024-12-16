@@ -15,7 +15,6 @@ class TaskDistributor:
         self,
         request: Request,
         slave: DropBoxV1Service,
-        chunk: int
     ) -> (Response | Exception):
         '''
         Dispatch the request to the slave
@@ -33,7 +32,7 @@ class TaskDistributor:
             response: Response
             match task_action:
                 case 'mv' | 'file_created' | 'cp' | 'modified':
-                    response = service.upload_chunk(request, chunk)
+                    response = service.upload_chunk(request)
                 case 'touch':
                     response = service.file_creation(request)
                 case 'rm':

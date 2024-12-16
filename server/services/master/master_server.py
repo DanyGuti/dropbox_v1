@@ -14,7 +14,7 @@ from server.services.base.client_server_service import ClientServerService
 from server.interfaces.common.health_interface import IHealthService
 from server.interfaces.init_interfaces.master_service_interface import IMasterServerService
 
-IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.124.92"
+IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.126.106"
 
 
 @rpyc.service
@@ -53,7 +53,6 @@ class MasterServerService(
         def wrapper(
             self: 'MasterServerService',
             req_client: Request,
-            chunk_size: int = 0
         ) -> (Response | Exception):
             try:
                 self.sequence_events.append({
@@ -64,15 +63,11 @@ class MasterServerService(
                 })
                 result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
                     req_client,
-                    chunk=chunk_size,
                     sequence_events=self.sequence_events
                 )
                 print(result)
                 if isinstance(result, Exception):
                     raise result
-                sig = inspect.signature(method)
-                if len(sig.parameters) == 3:  # method accepts three parameters
-                    return method(self, req_client, chunk_size)
                 return method(self, req_client)
             except (ConnectionError, TimeoutError, ValueError) as e:
                 print(f"Error distributing load: {e}")
@@ -93,7 +88,6 @@ class MasterServerService(
         def wrapper(
             self: 'MasterServerService',
             req_client: Request,
-            chunk_size: int = 0
         ) -> (Response | Exception):
             try:
                 self.sequence_events.append({
@@ -104,15 +98,12 @@ class MasterServerService(
                 })
                 result: (Response | Exception) = self.node_coordinator.self_apply_request(
                     req_client,
-                    chunk=chunk_size,
                     sequence_events=self.sequence_events
                 )
                 print(result)
                 if isinstance(result, Exception):
                     raise result
                 sig = inspect.signature(method)
-                if len(sig.parameters) == 3:  # method accepts three parameters
-                    return method(self, req_client, chunk_size)
                 return method(self, req_client)
             except (ConnectionError, TimeoutError, ValueError) as e:
                 print(f"Error distributing load: {e}")
@@ -137,8 +128,8 @@ class MasterServerService(
     @rpyc.exposed
     def set_client_path(self, request: Request) -> None:
         self.node_coordinator.set_slaves()
-        cwd_client : str = request.src_path
-        req_client : str = request.task.user
+        # cwd_client : str = request.src_path
+        # req_client : str = request.task.user
         self.sequence_events.append({
             "timestamp": time.time(),
             "user": request.task.user,
@@ -146,12 +137,12 @@ class MasterServerService(
             "acks": []
         })
             
-        return self.node_coordinator.set_client_path(cwd_client, req_client, self.sequence_events)
+        return self.node_coordinator.set_client_path(request, self.sequence_events)
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     @apply_modification_master_wrapper
     @apply_slave_distribution_wrapper
-    def upload_chunk(self, request: Request, chunk: int) -> (Response | Exception):
+    def upload_chunk(self, request: Request) -> (Response | Exception):
         pass
         
     @rpyc.exposed

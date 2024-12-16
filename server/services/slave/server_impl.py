@@ -80,7 +80,6 @@ class DropBoxV1Service(
         self.queue_processor_service.append_task(
             request,
             "css",
-            chunk=b''
         )
         # Start processing tasks and get the next response
         task_generator = self.queue_processor_service.process_tasks()
@@ -97,16 +96,14 @@ class DropBoxV1Service(
         )
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
-    def upload_chunk(self, request: Request, chunk: bytes) -> Response:
+    def upload_chunk(self, request: Request) -> Response:
         '''
         upload a chunk of a file to the server
         '''
-        print(f"Uploading chunk of size {len(chunk)} bytes...")
         #Caso chunk vacio-- file by chunk empty
         self.queue_processor_service.append_task(
             request,
             "fss",
-            chunk=chunk
         )
         # Start processing tasks and get the next response
         task_generator = self.queue_processor_service.process_tasks()
@@ -130,7 +127,6 @@ class DropBoxV1Service(
         self.queue_processor_service.append_task(
             request,
             "fss",
-            chunk=b''
         )
         # Start processing tasks and get the next response
         task_generator = self.queue_processor_service.process_tasks()
@@ -154,7 +150,6 @@ class DropBoxV1Service(
         self.queue_processor_service.append_task(
             request,
             "fss",
-            chunk=b''
         )
         # Start processing tasks and get the next response
         task_generator = self.queue_processor_service.process_tasks()
@@ -178,7 +173,6 @@ class DropBoxV1Service(
         self.queue_processor_service.append_task(
             request,
             "fss",
-            chunk=b''
         )
         # Start processing tasks and get the next response
         task_generator = self.queue_processor_service.process_tasks()
@@ -202,7 +196,6 @@ class DropBoxV1Service(
         self.queue_processor_service.append_task(
             request,
             "fss",
-            chunk=b''
         )
         # Start processing tasks and get the next response
         task_generator = self.queue_processor_service.process_tasks()

@@ -31,7 +31,6 @@ class ITaskProcessorMaster(ABC):
         self,
         request: Request,
         type_req: str,
-        chunk: bytes
     ) -> None:
         '''
         Append a new request to the processor (FIFO)

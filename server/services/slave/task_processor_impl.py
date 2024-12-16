@@ -91,7 +91,7 @@ class TaskProcessorSlave(
         '''
         response: Response = self.client_server_service.set_client_path(request)
         return response
-    def append_task(self, request: Request, type_req: str, chunk: bytes) -> None:
+    def append_task(self, request: Request, type_req: str) -> None:
         '''
         Append the task to the task processor (FIFO)
         '''
@@ -100,7 +100,6 @@ class TaskProcessorSlave(
                 self.client_server_service.get_operations_log()
             client_id_req: int = request.task.id_client
             incoming_task_id_req: int = request.task.id_task
-            request.chunks = chunk
 
             list_invocations: list[tuple[int, Response]] =\
                 service_operations[client_id_req]

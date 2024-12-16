@@ -28,7 +28,7 @@ class IMasterServerService(ABC):
         On disconnect with the client
         '''
     @abstractmethod
-    def upload_chunk(self, request: Request, chunk: int) -> (Response | Exception):
+    def upload_chunk(self, request: Request) -> (Response | Exception):
         '''
         Expose the upload chunk method
         '''

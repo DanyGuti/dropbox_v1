@@ -16,6 +16,6 @@ class ServerConfig:
     is_master: bool = False
     port: int = 50082
     registrar: Optional[UDPRegistryClient] = None
-    server_ip: str = "158.227.124.232"
+    server_ip: str = "158.227.126.125"
     service: Optional[UDPRegistryClient] = None
     type: Optional[ForkingServer | ThreadedServer] = None
