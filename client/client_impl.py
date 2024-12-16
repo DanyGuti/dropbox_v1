@@ -91,8 +91,9 @@ class Client():
         '''
         try:
             current_request: Request = self.requests[0]
+            current_request.chunks = chunk
             print(f"Uploading chunk of size {len(chunk)} bytes...")
-            response: Response = self.service.upload_chunk(current_request, chunk)
+            response: Response = self.service.upload_chunk(current_request)
             with self.lock:  # Ensure thread-safe access to the queue
                 self.response_queue.put(response)
                 self.process_responses()
