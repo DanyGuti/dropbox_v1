@@ -3,29 +3,23 @@ ClientWatcher class to watch for system events
 child class of Client
 '''
 
-import os
-import re
-import time
-import threading
+from client.imports.import_base import os, re, time, threading
 
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEvent, \
-    FileMovedEvent, FileModifiedEvent, FileDeletedEvent, \
-    FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent, FileClosedEvent
+from client.imports.import_base import Observer, FileSystemEvent, \
+    FileMovedEvent, FileModifiedEvent, FileDeletedEvent, FileClosedEvent, \
+    FileCreatedEvent, DirCreatedEvent, DirDeletedEvent, DirModifiedEvent
 
-from client.client import Client
-from utils.custom_req_res import Request
-from server.system_event_handler import SystemEventHandler
+from client.client_impl import Client
+from client.system_event_handler import SystemEventHandler
+from client.imports.import_base import Request, Task
 
 swp_file_pattern = r"^.*\.swp$"
-current_directory = os.getcwd()
-target_directory = os.path.join(current_directory, "dropbox_genial_loli_app")
-                                
-CWD: str = os.path.dirname(os.path.abspath(__file__))
-print(current_directory)
-
+# Get the directory of the current file
+current_dir: str = os.path.dirname(os.path.abspath(__file__))
+# Move two directories up
+CWD: str = os.path.normpath(os.path.join(current_dir, ".."))
 # Grab the events from local system and send to server via rpyc (RPCs)
-class ClientWatcher(Client, SystemEventHandler): # type: ignore
+class ClientWatcher(Client, SystemEventHandler):
     '''
     ClientWatcher class to watch for system events
     and send them to the server
@@ -37,11 +31,11 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         lock: threading.Lock
     '''
     def __init__(self, client_instance: Client) -> None:
-        super().__init__()  # Initialize the parent class (Client)
+        super().__init__(user=client_instance.user) # Initialize the parent class with the user
         self.client: Client = client_instance
         self._dispatcher: list = []
         self.last_event_time: time = time.time()  # Track the time of the last event
-        self.accumulation_timeout: float = 0.75
+        self.accumulation_timeout: float = 0.25
         self.lock: threading.Lock = threading.Lock()
         # self.root_path_stack: list = re.split(r'(\/)', CWD)
     # Call the parent class
@@ -50,7 +44,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         Event handler for any file system event
         '''
         super().on_any_event(event)
-        if not '__pycache__' in event.src_path or not re.match(swp_file_pattern, event.src_path):
+        if not '__pycache__' in event.src_path:
             with self.lock:
                 self._dispatcher.append(event)
     # Start watching with observer
@@ -59,8 +53,7 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
         Start watching for file system events
         '''
         observer: Observer = Observer() # type: ignore
-        print(target_directory)
-        observer.schedule(self, target_directory, recursive=True)
+        observer.schedule(self, CWD, recursive=True)
         observer.start()
         try:
             while True:
@@ -88,8 +81,17 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
             destination_path=dst,
             file_name=file,
             is_directory=is_dir,
+            task=Task(
+                id_client=1,
+                user=self.user,
+                id_task=self.client.invocation_id
+            ),
+            time_of_request=time.time(),
             src_path=path
-            )
+        )
+        self.client.invocation_id += 1
+        # Append the current request to the list of requests
+        self.client.requests.append(self.client.request)
         if action == 'file_created' or action == 'mv' or action == 'cp' or action == 'modified':
             if action == 'mv':
                 self.client.send_file_by_chunks(dst, file)
@@ -200,28 +202,3 @@ class ClientWatcher(Client, SystemEventHandler): # type: ignore
                     accum_events.clear()
                     print("No event to process recognized")
                     continue
-
-if __name__ == "__main__":
-    client: Client = Client()
-    client.start_connection(CWD)
-    try:
-        if client.conn:
-            try:
-                DIR_NAME: str = "dropbox_genial_loli_app"
-                # Check if the directory exists
-                if not os.path.exists(DIR_NAME):
-                    # If it doesn't exist, create it
-                    os.mkdir(DIR_NAME)
-                    print(f"Directory '{DIR_NAME}' created.")
-            except OSError as e:
-                client.handle_error(e)
-            client_watcher: ClientWatcher = ClientWatcher(client_instance=client)
-            client_watcher.start_watching()
-    except KeyboardInterrupt:
-        client.close_connection()
-    except EOFError:
-        client.close_connection()
-    except (ConnectionError, OSError) as e:
-        client.handle_error(e)
-    finally:
-        client.close_connection()
