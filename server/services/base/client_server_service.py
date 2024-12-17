@@ -24,7 +24,7 @@ class ClientServerService(IClientServerService):
     def __init__(self) -> None:
         self.client_path: str = ""
         self.clients_paths: dict[str, str] = {}
-        self.server_relative_path: str = os.getcwd()
+        self.server_relative_path: str = os.path.join(os.getcwd() + "/dropbox_genial_loli_app")
         self.clients_service_operations: dict[int, list[tuple[int, Response]]] = {}
         # {
         #  client_id : [(invocation1, Response), (invocation2, Response)],
