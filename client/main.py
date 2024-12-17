@@ -17,6 +17,15 @@ def main() -> None:
     client.start_connection(CWD)
     try:
         if client.conn:
+            try:
+                DIR_NAME: str = "dropbox_genial_loli_app"
+                # Check if the directory exists
+                if not os.path.exists(DIR_NAME):
+                    # If it doesn't exist, create it
+                    os.mkdir(DIR_NAME)
+                    print(f"Directory '{DIR_NAME}' created.")
+            except OSError as e:
+                client.handle_error(e)
             client_watcher: ClientWatcher = ClientWatcher(client_instance=client)
             client_watcher.start_watching()
     except KeyboardInterrupt:

@@ -113,12 +113,16 @@ class ClientWatcher(Client, SystemEventHandler):
             while len(self._dispatcher) > 0:
                 curr_event: FileSystemEvent = self._dispatcher.pop(0)
                 accum_events.append(curr_event)
+            print(accum_events)
             if(any (re.match(swp_file_pattern , e.src_path) for e in accum_events)):
                 accum_events = list(filter(lambda e : not re.match(swp_file_pattern , e.src_path), accum_events))
                 print(accum_events)
             while len(accum_events) > 0:
                 event: FileSystemEvent = accum_events[0]
-                if (len (accum_events) == 4) and not isinstance(event, (FileMovedEvent)):
+                if (len (accum_events) >= 4) and not isinstance(event, (FileMovedEvent))\
+                      or ((len (accum_events) == 6) and all(isinstance(e, 
+                        (FileCreatedEvent, DirModifiedEvent, FileModifiedEvent, FileClosedEvent,\
+                            DirModifiedEvent)) for e in accum_events)):
                     file_event: FileSystemEvent = accum_events[1]
                     file_name: str = self.construct_curr_path(file_event.src_path)
                     accum_events.clear() # cp a file
@@ -183,10 +187,12 @@ class ClientWatcher(Client, SystemEventHandler):
                         accum_events.clear() # Deleted a directory
                         file_name: str = self.construct_curr_path(event.src_path)
                         self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
-                elif((len(accum_events) == 5) and (isinstance(event, FileCreatedEvent))):
-                    accum_events.clear()
-                    file_name: str = self.construct_curr_path(event.src_path)
-                    self.send_to_client(event.src_path, 'touch', file_name)
+                elif((len(accum_events) == 5)
+                        and (isinstance(event, FileCreatedEvent))):
+                        accum_events.clear()
+                        file_name: str = self.construct_curr_path(event.src_path)
+                        self.send_to_client(event.src_path, 'touch', file_name)
+                
                 elif((len(accum_events) == 6) and any(isinstance(e, (FileModifiedEvent)) for e in accum_events)):
                     accum_events.clear() # Modified a file
                     file_name: str = self.construct_curr_path(event.src_path)
@@ -196,4 +202,3 @@ class ClientWatcher(Client, SystemEventHandler):
                     accum_events.clear()
                     print("No event to process recognized")
                     continue
-
