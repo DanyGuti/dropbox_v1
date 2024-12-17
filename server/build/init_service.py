@@ -52,6 +52,9 @@ class InitService():
             # os.chdir(DIR_NAME)
             print(f"Changed to directory: {os.getcwd()}")
             
+            master_service.set_server_id(
+                server_id=config.server_id
+            )
             self.start_server(master_service, config)
         except (OSError, IOError) as e:
             print(f"Error: {e}")
@@ -75,6 +78,9 @@ class InitService():
             )
             server_impl.set_ip_service(config.server_ip)
             server_impl.set_port(config.port)
+            server_impl.set_server_id(
+                config.server_id
+            )
             # Check if the directory exists
             if not os.path.exists(DIR_NAME):
                 # If it doesn't exist, create it

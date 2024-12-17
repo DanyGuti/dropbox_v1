@@ -16,6 +16,7 @@ class ServerConfig:
     is_master: bool = False
     port: int = 50082
     registrar: Optional[UDPRegistryClient] = None
-    server_ip: str = "158.227.126.244"#IP OF THE COMPUTER THAT IS RUNNING THIS SIDE OF THE APP
+    server_ip: str = "158.227.125.64"#IP OF THE COMPUTER THAT IS RUNNING THIS SIDE OF THE APP
     service: Optional[UDPRegistryClient] = None
     type: Optional[ForkingServer | ThreadedServer] = None
+    server_id: int = 0

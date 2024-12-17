@@ -12,6 +12,7 @@ from server.services.master.node_coordinator import NodeCoordinator
 from server.interfaces.common.dropbox_interface import IDropBoxServiceV1
 from server.services.base.client_server_service import ClientServerService
 from server.interfaces.common.health_interface import IHealthService
+from server.interfaces.election_interface import IElection
 from server.interfaces.init_interfaces.master_service_interface import IMasterServerService
 
 IP_ADDRESS_SLAVE_SERVER_SERVICE: str = "158.227.126.106"
@@ -183,3 +184,6 @@ class MasterServerService(
         Get the threaded server
         '''
         return self.server_thread
+    @rpyc.exposed
+    def get_election_service(self) -> IElection: 
+        return self.election_service

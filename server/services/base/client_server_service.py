@@ -44,7 +44,6 @@ class ClientServerService(IClientServerService):
         ) -> (bool | Exception):
             req_client: Request = args[0]
             from server.services.slave.server_impl import DropBoxV1Service
-            print("EN wrapper de setear directorio al master")
             if(isinstance(self, DropBoxV1Service)):
                 result = self.queue_processor_service.client_server_service.set_client_state_path(req_client)
                 print(result)
@@ -82,7 +81,6 @@ class ClientServerService(IClientServerService):
         '''
         try:
             current_clients_paths: dict[str, str] = self.get_clients_paths()
-            print(request ,"desde wrapper set client state path", current_clients_paths)
             if request.task.user not in current_clients_paths:
                 return Response(
                     status_code=1,

@@ -46,7 +46,10 @@ class FactoryServices(IFactoryService):
         Create the master service
         '''
         return MasterServerService(
-            coordinator=NodeCoordinator(),
+            coordinator=NodeCoordinator(
+                file_management_service=FileManagementService(),
+                client_server_service=ClientServerService()
+            ),
             health_service=HealthService(health_status=100.0)
         )
     def create_task_processor(self) -> ITaskProcessorSlave:

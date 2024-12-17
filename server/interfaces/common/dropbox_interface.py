@@ -4,6 +4,7 @@ This file contains the interface for the DropBox service.
 from server.imports.import_server_base import ABC\
     , abstractmethod, rpyc, Request, Response
 
+from server.interfaces.election_interface import IElection
 class IDropBoxServiceV1(ABC):
     '''
     Interface for the DropBox service
@@ -48,3 +49,8 @@ class IDropBoxServiceV1(ABC):
         '''
         Delete a directory on the server
         '''
+    @abstractmethod
+    def get_election_service(self) -> IElection:
+        '''
+        Get the proxy object of the election service
+        ''' 

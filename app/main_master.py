@@ -33,10 +33,11 @@ def main() -> None:
             is_master=True,
             port=50082,
             registrar=UDPRegistryClient(
-                "158.227.126.244",
+                "158.227.125.64",
                 50081
             ),
-            type=ThreadedServer
+            type=ThreadedServer,
+            server_id=3
         )
     )
 
