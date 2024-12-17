@@ -22,7 +22,8 @@ def main() -> None:
                 SERVERS_IP,
                 50081
             ),
-            type=ThreadedServer
+            type=ThreadedServer,
+            server_id=2
         )
     )
 

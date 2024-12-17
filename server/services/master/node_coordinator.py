@@ -13,6 +13,8 @@ from server.services.master.task_distributor import TaskDistributor
 
 from server.interfaces.local_fms_interface import IFileManagementService
 from server.interfaces.init_interfaces.client_service_interface import IClientServerService
+from server.interfaces.election_interface import IElection
+
 
 
 class NodeCoordinator(TaskDistributor):
@@ -204,8 +206,7 @@ class NodeCoordinator(TaskDistributor):
         Get the list of slaves
         '''
         registry: UDPRegistryClient = \
-        UDPRegistryClient(ip="158.227.126.244", port=50081)  # Discover the registry server
-        print(registry)
+        UDPRegistryClient(ip="158.227.125.64", port=50081)  # Discover the registry server
         print("Discovering services...", registry.list())
         discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)
         print("Discovered services", discovered_services)
@@ -245,16 +246,14 @@ class NodeCoordinator(TaskDistributor):
         '''
         slaves_to_broadcast: list[tuple[str, int]] = []
         # Normalize dictionary, obtaining only the (server_id, server_port)
-        print(self.slave_connections)
         for key in self.slave_connections.keys():
             server_id: str = key.get_server_id()
             server_port: int = key.get_port()
             slaves_to_broadcast.append((server_id, server_port))
 
         for _, slave_service in self.slaves.items():
-            slave_service: DropBoxV1Service
-            ## Set the (ip, port) of the slaves to all registred nodes
+            election_service: IElection = obtain(slave_service.get_election_service())
             try:
-                slave_service.election_service.set_slaves_broadcasted(slaves_to_broadcast)
+                election_service.set_slaves_broadcasted(slaves_to_broadcast)
             except Exception as e:
-                print(f"Error broadcasting slaves from 'broadcast_slaves': {e}")
+                print(f"Error broadcasting slaves: {e}")

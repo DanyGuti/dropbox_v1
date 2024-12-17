@@ -293,3 +293,6 @@ class DropBoxV1Service(
         self.leader_ip = discovered_services[0][0]
         heartbeat_thread = threading.Thread(target=self.send_heartbeat, daemon=True)
         heartbeat_thread.start()
+    @rpyc.exposed
+    def get_election_service(self) -> IElection: 
+        return self.election_service
