@@ -54,7 +54,6 @@ class FileManagementService(
         upload a chunk of a file to the server mv action
         '''
         #CAMBIOS HECHOS 14/12 linea 207 server.py 1.4v Entregada
-        init_state: str = self.server_relative_path
         try:
             print(f"destination_path: {dst_path}")
             src_path: str = server_relative_path
@@ -73,8 +72,7 @@ class FileManagementService(
             shutil.move(src_path, server_relative_path)
             '''
             #CAMBIOS HECHOS 14/12 linea 216 y 217 server.py 1.4v Entregada
-            subprocess.call(["mv", src_path, self.server_relative_path])
-            self.server_relative_path: str = init_state
+            subprocess.call(["mv", src_path, server_relative_path])
             
             return Response(
                 message=file_name +\

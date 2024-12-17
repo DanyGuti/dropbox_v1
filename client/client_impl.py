@@ -186,8 +186,7 @@ class Client():
         try:  # Acknowledge success
             while not self.response_queue.empty():
                 response: Response = self.response_queue.get()  # Wait for a response
-                if response is None:
-                    self.handle_error("Received a None response.")
+                if response is not None:
                     self.requests.pop(0)
                     self.response_queue.task_done()
                     continue

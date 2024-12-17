@@ -68,7 +68,7 @@ class MasterServerService(
                 print(result)
                 if isinstance(result, Exception):
                     raise result
-                return method(self, req_client)
+                return result
             except (ConnectionError, TimeoutError, ValueError) as e:
                 print(f"Error distributing load: {e}")
                 return e

@@ -38,6 +38,11 @@ class IClientServerService(ABC):
         Get the server relative path
         '''
     @abstractmethod
+    def set_server_relative_path(self, server_path: str) -> None:
+        '''
+        Set the path of the server
+        '''
+    @abstractmethod
     def append_to_logs(self, request: Request, response: Response) -> None:
         '''
         Append to the slave the (invocation, response)

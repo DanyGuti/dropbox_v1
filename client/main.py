@@ -5,9 +5,11 @@ from client.imports.import_base import os
 from client.client_impl import Client
 from client.client_watcher_watchdog import ClientWatcher
 
-current_dir: str = os.path.dirname(os.path.abspath(__file__))
-# Get the directory of the current file
-CWD: str = os.path.normpath(os.path.join(current_dir, ".."))
+current_directory = os.getcwd()
+target_directory = os.path.join(current_directory, "dropbox_genial_loli_app")
+                                
+CWD: str = os.path.dirname(os.path.abspath(__file__))
+print(current_directory)
 
 def main() -> None:
     '''

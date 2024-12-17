@@ -161,3 +161,5 @@ class ClientServerService(IClientServerService):
         return self.clients_service_operations
     def get_clients_paths(self) -> dict[str, str]:
         return self.clients_paths
+    def set_server_relative_path(self, server_path: str) -> None:
+        self.server_relative_path = server_path

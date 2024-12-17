@@ -29,7 +29,7 @@ class NodeCoordinator(TaskDistributor):
         self.slave_connections: dict[DropBoxV1Service, rpyc.Connection] = {}
         self.slaves_health: list[float] = []
         self.file_management_service: IFileManagementService = file_management_service
-        self.client_server_service = client_server_service
+        self.client_server_service: IClientServerService = client_server_service
 
     def self_apply_request (
         self,
@@ -48,12 +48,14 @@ class NodeCoordinator(TaskDistributor):
                         request.action
                     )
                 case 'mv':
+                    init_state_path: str = self.client_server_service.get_server_relative_path()
                     response = self.file_management_service.write_chunk_mv(
                         self.client_server_service.get_client_path(),
                         request.destination_path,
                         request.file_name,
-                        self.client_server_service.get_server_relative_path()
+                        init_state_path
                     )
+                    self.client_server_service.set_server_relative_path(init_state_path)
                 case 'touch':
                     response = self.file_management_service.file_creation(
                         request.file_name,
@@ -202,7 +204,7 @@ class NodeCoordinator(TaskDistributor):
         Get the list of slaves
         '''
         registry: UDPRegistryClient = \
-        UDPRegistryClient(ip="158.227.126.135", port=50081)  # Discover the registry server
+        UDPRegistryClient(ip="158.227.126.244", port=50081)  # Discover the registry server
         print(registry)
         print("Discovering services...", registry.list())
         discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)
