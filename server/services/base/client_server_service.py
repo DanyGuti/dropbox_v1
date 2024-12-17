@@ -24,7 +24,7 @@ class ClientServerService(IClientServerService):
     def __init__(self) -> None:
         self.client_path: str = ""
         self.clients_paths: dict[str, str] = {}
-        self.server_relative_path: str = os.path.join(os.getcwd() + "/dropbox_genial_loli_app")
+        self.server_relative_path: str = os.getcwd()
         self.clients_service_operations: dict[int, list[tuple[int, Response]]] = {}
         # {
         #  client_id : [(invocation1, Response), (invocation2, Response)],
@@ -43,7 +43,13 @@ class ClientServerService(IClientServerService):
             **kwargs: dict[str, any]
         ) -> (bool | Exception):
             req_client: Request = args[0]
-            result = self.client_service.set_client_state_path(req_client)
+            from server.services.slave.server_impl import DropBoxV1Service
+            print("EN wrapper de setear directorio al master")
+            if(isinstance(self, DropBoxV1Service)):
+                result = self.queue_processor_service.client_server_service.set_client_state_path(req_client)
+                print(result)
+            else:
+                result = self.node_coordinator.client_server_service.set_client_state_path(req_client)
             if result is False:
                 print(f"Failed to set client state path: {result}")
                 return result  # Exit early if setting client path fails
@@ -57,6 +63,7 @@ class ClientServerService(IClientServerService):
         user: str = request.task.user
         # Set the clients paths
         self.clients_paths[user] = client_path
+        print(self.clients_paths)
         return Response(
             status_code=0,
             message="Client path set",
@@ -74,7 +81,9 @@ class ClientServerService(IClientServerService):
         Set the client state path
         '''
         try:
-            if request.task.user not in self.clients_paths:
+            current_clients_paths: dict[str, str] = self.get_clients_paths()
+            print(request ,"desde wrapper set client state path", current_clients_paths)
+            if request.task.user not in current_clients_paths:
                 return Response(
                     status_code=1,
                     message="User not found",
@@ -86,7 +95,7 @@ class ClientServerService(IClientServerService):
             # Getting the difference between the two paths
             diff_path: str = get_diff_path(
                 request.src_path,
-                self.clients_paths[request.task.user]
+                current_clients_paths[request.task.user]
             )
             # Update server_relative_path and normalize it
             new_relative_path: str = os.path.join(self.server_relative_path, diff_path)
@@ -94,7 +103,7 @@ class ClientServerService(IClientServerService):
             self.server_relative_path: str = normalize_path(new_relative_path)
             # Update the client path
             self.client_path: str = request.src_path
-            self.clients_paths[request.task.user] = request.src_path
+            current_clients_paths[request.task.user] = request.src_path
             # Check if the updated path exists
             print(f"Checking existence of path: {self.server_relative_path}")
             if request.action not in [
@@ -146,7 +155,9 @@ class ClientServerService(IClientServerService):
         # 2. Get the list of tuples from: dict[client_id]
         # 3. Append to that list(request.task.id_task, response)
         list_invocations: list[tuple[int, Response]] = \
-                self.clients_service_operations[request.task.id_client]
-        list_invocations.append(request.task.id_task, response)
+                self.clients_service_operations.get(request.task.id_client, [])
+        list_invocations.append((request.task.id_task, response))
     def get_operations_log(self) -> dict[list[tuple[int, Response]]]:
         return self.clients_service_operations
+    def get_clients_paths(self) -> dict[str, str]:
+        return self.clients_paths

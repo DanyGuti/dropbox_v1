@@ -32,11 +32,11 @@ class MasterServerService(
     def __init__(
             self,
             coordinator: NodeCoordinator,
-            health_service: IHealthService#,
+            health_service: IHealthService,
         ) -> None:
         super().__init__(health_service=health_service)
         self.node_coordinator: NodeCoordinator = coordinator
-        self.server_relative_path: str = os.path.join(os.getcwd())
+        # self.server_relative_path: str = os.getcwd()
         self.sequence_events = []
         self.set_server_id(1)
         self.server_thread: rpyc.ThreadedServer = None
@@ -136,7 +136,7 @@ class MasterServerService(
             "request": "set_client_path",
             "acks": []
         })
-            
+        self.node_coordinator.apply_self_set_client_path(request, self.sequence_events)
         return self.node_coordinator.set_client_path(request, self.sequence_events)
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper

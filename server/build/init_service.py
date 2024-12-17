@@ -11,6 +11,7 @@ from server.services.master.master_server import MasterServerService
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.slave.server_impl import DropBoxV1Service
 from server.interfaces.local_fms_interface import IFileManagementService
+from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 
 
 from server.interfaces.init_interfaces.factory_interface import IFactoryService
@@ -36,10 +37,10 @@ class InitService():
         '''
         try:
             
-            node_coordinator: NodeCoordinator = NodeCoordinator( self.factory.create_file_management_service() )
+            node_coordinator: NodeCoordinator = NodeCoordinator(self.factory.create_file_management_service(), self.factory.create_client_service())
             master_service: MasterServerService = MasterServerService(
                 coordinator=node_coordinator,
-                health_service=None
+                health_service=None,
             )
             #CAMBIOS HECHOS
             
@@ -48,7 +49,7 @@ class InitService():
                 os.mkdir(DIR_NAME)
                 print(f"Directory '{DIR_NAME}' created.")
             # Change to the directory
-            os.chdir(DIR_NAME)
+            # os.chdir(DIR_NAME)
             print(f"Changed to directory: {os.getcwd()}")
             
             self.start_server(master_service, config)

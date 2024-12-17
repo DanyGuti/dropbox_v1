@@ -47,3 +47,8 @@ class IClientServerService(ABC):
         '''
         Getter of the operations made by the slave
         '''
+    @abstractmethod
+    def get_clients_paths(self) -> dict[str, str]:
+        '''
+        Getter of the clients paths
+        '''

@@ -7,23 +7,29 @@ from rpyc.utils.server import UDPRegistryClient
 from rpyc.utils.factory import discover
 from rpyc.utils.factory import DiscoveryError
 from server.imports.import_server_base import rpyc, Request, Response,\
-    SERVERS_IP
+    SERVERS_IP, time
 from server.services.slave.server_impl import DropBoxV1Service
 from server.services.master.task_distributor import TaskDistributor
-#CAmbios hechos 4
+
 from server.interfaces.local_fms_interface import IFileManagementService
+from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 
 
 class NodeCoordinator(TaskDistributor):
     '''
     Load balancer class
     '''
-    def __init__(self, file_management_service: IFileManagementService) -> None:
+    def __init__(
+            self,
+            file_management_service: IFileManagementService,
+            client_server_service: IClientServerService
+        ) -> None:
         super().__init__()
         self.slaves: dict[int: DropBoxV1Service] = {}
         self.slave_connections: dict[DropBoxV1Service, rpyc.Connection] = {}
         self.slaves_health: list[float] = []
         self.file_management_service: IFileManagementService = file_management_service
+        self.client_server_service = client_server_service
 
     def self_apply_request (
         self,
@@ -32,18 +38,50 @@ class NodeCoordinator(TaskDistributor):
     ) -> (Response | Exception):
         task_action: str = request.action
         try:
-            response: Response
+            response: Response = None          
             match task_action:
-                case 'mv' | 'file_created' | 'cp' | 'modified':
-                    response = self.file_management_service.upload_chunk(request)
+                case 'file_created' | 'modified' | 'touch' | 'cp' | 'created':
+                    response = self.file_management_service.write_chunk_no_mv(
+                        request.file_name,
+                        self.client_server_service.get_server_relative_path(),
+                        request.chunks,
+                        request.action
+                    )
+                case 'mv':
+                    response = self.file_management_service.write_chunk_mv(
+                        self.client_server_service.get_client_path(),
+                        request.destination_path,
+                        request.file_name,
+                        self.client_server_service.get_server_relative_path()
+                    )
                 case 'touch':
-                    response = self.file_management_service.file_creation(request)
+                    response = self.file_management_service.file_creation(
+                        request.file_name,
+                        self.client_server_service.get_server_relative_path()
+                    )
                 case 'rm':
-                    response = self.file_management_service.file_deletion(request)
+                    response = self.file_management_service.file_deletion(
+                        self.client_server_service.get_server_relative_path(),
+                        request.file_name
+                    )
                 case 'mkdir':
-                    response = self.file_management_service.dir_creation(request)
+                    response = self.file_management_service.dir_creation(
+                        request.file_name,
+                        self.client_server_service.get_server_relative_path()
+                    )
                 case 'rmdir':
-                    response = self.file_management_service.dir_deletion(request)
+                    response = self.file_management_service.dir_deletion(
+                        self.client_server_service.get_server_relative_path(),
+                        request.file_name
+                    )
+                case _:
+                    response = Response(
+                        error="ActionError",
+                        message="Error: ",
+                        status_code=3,
+                        time_sent=time.time(),
+                        id_response=request.task.id_task
+                    )
             return response
         except Exception as e:
             print(e)
@@ -99,6 +137,22 @@ class NodeCoordinator(TaskDistributor):
                 message="Error distributing load to slaves from node coordinator",
                 error=str(e)
             )
+    def apply_self_set_client_path(
+            self,
+            request: Request,
+            sequence_events: list[dict[str, object]]
+    ) -> None:
+        '''
+        Set the initial path of the server in the first call
+        '''
+        try:
+            self.client_server_service.set_client_path(request=request)
+        except Exception as e:
+            return Response(
+                status_code=1,
+                message="Error setting client path to slaves from node coordinator",
+                error=str(e)
+            )
     def set_client_path(
         self,
         request: Request,
@@ -148,7 +202,7 @@ class NodeCoordinator(TaskDistributor):
         Get the list of slaves
         '''
         registry: UDPRegistryClient = \
-        UDPRegistryClient(ip="158.227.126.125", port=50081)  # Discover the registry server
+        UDPRegistryClient(ip="158.227.126.135", port=50081)  # Discover the registry server
         print(registry)
         print("Discovering services...", registry.list())
         discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)

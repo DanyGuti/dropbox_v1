@@ -101,7 +101,7 @@ class TaskProcessorSlave(
             incoming_task_id_req: int = request.task.id_task
 
             list_invocations: list[tuple[int, Response]] =\
-                service_operations.get(request.task.id_client, [])
+            service_operations.get(request.task.id_client, [])
 
             if len(list_invocations) == 0:
                 self.queue_processor[type_req].append(request)
@@ -140,11 +140,11 @@ class TaskProcessorSlave(
                 with self.lock:
                     min_request: tuple[int, str] = (10000, "")
                     for i, _ in enumerate(client_service_list):
-                        if client_service_list[i].task.id_task < min_request:
+                        if client_service_list[i].task.id_task < min_request[0]:
                             min_request = (client_service_list[i].task.id_task, "css")
 
                     for i, _ in enumerate(fms_service_list):
-                        if fms_service_list[i].task.id_task < min_request:
+                        if fms_service_list[i].task.id_task < min_request[0]:
                             min_request = (fms_service_list[i].task.id_task, "fms")
                     # Delegate to the file_management_system
                     if min_request[1] == "fms":
