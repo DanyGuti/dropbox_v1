@@ -22,7 +22,7 @@ class Service():
         Set the server id
         '''
         self.server_id = server_id
-    @rpyc.exposed 
+    @rpyc.exposed
     def get_server_id(self) -> int:
         '''
         Get the server id

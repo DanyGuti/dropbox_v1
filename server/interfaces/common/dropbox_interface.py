@@ -53,4 +53,14 @@ class IDropBoxServiceV1(ABC):
     def get_election_service(self) -> IElection:
         '''
         Get the proxy object of the election service
-        ''' 
+        '''
+    @abstractmethod
+    def set_leader_ip(self) -> None:
+        '''
+        Set the leader ip
+        '''
+    @abstractmethod
+    def get_leader_ip(self) -> str:
+        '''
+        Get the leader ip
+        '''

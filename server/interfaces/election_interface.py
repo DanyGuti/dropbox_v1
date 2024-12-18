@@ -18,12 +18,12 @@ class IElection(ABC):
         Send election to the rest of the machines (higher id)
         '''
     @abstractmethod
-    def elect_leader(self) -> None:
+    def elect_leader(self, nodes: list[tuple[str, int]]) -> None:
         '''
         Elect a leader
         '''
     @abstractmethod
-    def update_leader(self) -> Response:
+    def update_leader(self, service) -> Response:
         '''
         Update the leader
         '''

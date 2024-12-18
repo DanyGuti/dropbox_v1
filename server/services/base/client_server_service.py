@@ -44,11 +44,17 @@ class ClientServerService(IClientServerService):
         ) -> (bool | Exception):
             req_client: Request = args[0]
             from server.services.slave.server_impl import DropBoxV1Service
-            if(isinstance(self, DropBoxV1Service)):
-                result = self.queue_processor_service.client_server_service.set_client_state_path(req_client)
+            if isinstance(self, DropBoxV1Service):
+                result = \
+                    self.queue_processor_service.client_server_service.set_client_state_path(
+                        req_client
+                    )
                 print(result)
             else:
-                result = self.node_coordinator.client_server_service.set_client_state_path(req_client)
+                result = \
+                    self.node_coordinator.client_server_service.set_client_state_path(
+                        req_client
+                    )
             if result is False:
                 print(f"Failed to set client state path: {result}")
                 return result  # Exit early if setting client path fails

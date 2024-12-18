@@ -32,10 +32,10 @@ class Election(IElection):
             try:
                 conn: rpyc.Connection = rpyc.connect(
                     ip,
-                    18861,
+                    50081,
                     config={"allow_all_attrs": True, "allow_pickle": True}
                 )
-                response_slave: str = conn.root.receive_election_message(message_election)
+                response_slave: str = conn.root.election_service.receive_election_message(message_election)
                 responses.append(response_slave)
                 if response_slave == "ok":
                     next_max_node = node
@@ -47,17 +47,33 @@ class Election(IElection):
                 responses.append("")
         return responses, next_max_node
     @rpyc.exposed
-    def elect_leader(self) -> None:
+    def elect_leader(self, nodes: list[tuple[str, int]]) -> None:
         '''
         Elect a new leader based on the highest id
         '''
-        print(self.receive_election_message("leader"))
+        for ip, _ in nodes:
+            # Send the election message
+            try:
+                conn: rpyc.Connection = rpyc.connect(
+                    ip,
+                    50081,
+                    config={"allow_all_attrs": True, "allow_pickle": True}
+                )
+                response_slave: str = conn.root.election_service.receive_election_message("leader")
+                if obtain(response_slave) == "ok":
+                    # Update the leader
+                    conn.root.election_service.update_leader(conn.root)
+                    print(f"Leader elected, in node with ip: {ip}")
+            except ConnectionRefusedError:
+                print(f"Connection refused to {ip}, in elect_leader")
+            except Exception as e:
+                print(f"Error: {e} in elect_leader")
     @rpyc.exposed
-    def update_leader(self):
+    def update_leader(self, service) -> None:
         '''
         Update the leader
         '''
-        pass
+        service.set_leader_ip(obtain(service.get_ip_service()))
     @rpyc.exposed
     def receive_election_message(
         self,

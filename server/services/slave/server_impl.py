@@ -71,7 +71,7 @@ class DropBoxV1Service(
         )
         all_empty_from_nodes: bool = all("" == res for res in responses[0])
         if all_empty_from_nodes:
-            self.election_service.elect_leader()
+            self.election_service.elect_leader(nodes)
             self.promote_self_to_master()
         else:
             self.election_service.send_election_message("election", responses[1])
@@ -294,5 +294,11 @@ class DropBoxV1Service(
         heartbeat_thread = threading.Thread(target=self.send_heartbeat, daemon=True)
         heartbeat_thread.start()
     @rpyc.exposed
-    def get_election_service(self) -> IElection: 
+    def get_election_service(self) -> IElection:
         return self.election_service
+    @rpyc.exposed
+    def get_leader_ip(self) -> str:
+        '''
+        Get the leader IP
+        '''
+        return self.leader_ip
