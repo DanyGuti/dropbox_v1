@@ -41,7 +41,6 @@ class MasterServerService(
         self.sequence_events = []
         self.set_server_id(1)
         self.server_thread: rpyc.ThreadedServer = None
-        
     @staticmethod
     def apply_slave_distribution_wrapper(
         method: Callable[['MasterServerService', Request, int],
@@ -74,9 +73,7 @@ class MasterServerService(
                 print(f"Error distributing load: {e}")
                 return e
         return wrapper
-    
     ###################################################
-
     @staticmethod
     def apply_modification_master_wrapper(
         method: Callable[['MasterServerService', Request, int],
@@ -110,9 +107,7 @@ class MasterServerService(
                 print(f"Error distributing load: {e}")
                 return e
         return wrapper
-    
     ###################################################
-    
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
         Method to be called when a connection is established
@@ -145,35 +140,30 @@ class MasterServerService(
     @apply_slave_distribution_wrapper
     def upload_chunk(self, request: Request) -> (Response | Exception):
         pass
-        
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     @apply_modification_master_wrapper
     @apply_slave_distribution_wrapper
     def file_creation(self, request: Request) -> (Response | Exception):
-        pass  
-        
+        pass
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     @apply_modification_master_wrapper
     @apply_slave_distribution_wrapper
     def file_deletion(self, request: Request) -> (Response | Exception):
         pass
-        
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     @apply_modification_master_wrapper
     @apply_slave_distribution_wrapper
     def dir_creation(self, request: Request) -> (Response | Exception):
         pass
-        
     @rpyc.exposed
     @ClientServerService.apply_set_client_dir_state_wrapper
     @apply_modification_master_wrapper
     @apply_slave_distribution_wrapper
     def dir_deletion(self, request: Request) -> (Response | Exception):
         pass
-        
     def set_thread(self, server: rpyc.ThreadedServer) -> None:
         '''
         Set the threaded server
@@ -185,5 +175,10 @@ class MasterServerService(
         '''
         return self.server_thread
     @rpyc.exposed
-    def get_election_service(self) -> IElection: 
-        return self.election_service
+    def get_election_service(self) -> IElection:
+        pass
+    def set_leader_ip(self) -> None:
+        pass
+    @rpyc.exposed
+    def get_leader_ip(self) -> str:
+        pass
