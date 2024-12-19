@@ -1,6 +1,7 @@
 '''
 This is a class to implement for the i_initService.
 '''
+import threading
 from server.imports.import_server_base import os, sys, ForkingServer, ThreadedServer
 from server.imports.import_server_base import ServerConfig
 
@@ -10,8 +11,6 @@ from server.interfaces.task_processor_interface import ITaskProcessorSlave
 from server.services.master.master_server import MasterServerService
 from server.services.master.node_coordinator import NodeCoordinator
 from server.services.slave.server_impl import DropBoxV1Service
-from server.interfaces.local_fms_interface import IFileManagementService
-from server.interfaces.init_interfaces.client_service_interface import IClientServerService
 
 
 from server.interfaces.init_interfaces.factory_interface import IFactoryService
@@ -36,14 +35,15 @@ class InitService():
         Create the master service
         '''
         try:
-            
-            node_coordinator: NodeCoordinator = NodeCoordinator(self.factory.create_file_management_service(), self.factory.create_client_service())
+            node_coordinator: NodeCoordinator = NodeCoordinator(
+                self.factory.create_file_management_service(),
+                self.factory.create_client_service()
+            )
             master_service: MasterServerService = MasterServerService(
                 coordinator=node_coordinator,
                 health_service=None,
             )
             #CAMBIOS HECHOS
-            
             if not os.path.exists(DIR_NAME):
                 # If it doesn't exist, create it
                 os.mkdir(DIR_NAME)
@@ -51,7 +51,6 @@ class InitService():
             # Change to the directory
             # os.chdir(DIR_NAME)
             print(f"Changed to directory: {os.getcwd()}")
-            
             master_service.set_server_id(
                 server_id=config.server_id
             )
@@ -125,5 +124,17 @@ class InitService():
         if not isinstance(service, MasterServerService):
             service.set_leader_ip()
         service.set_thread(t.start())
+        if isinstance(service, MasterServerService):
+            self.start_background_worker(service)
         print(f"Server started on port, after {config.port}")
         return t
+    def start_background_worker(self, service: MasterServerService) -> None:
+        '''
+        Start the background worker
+        '''
+        thread: threading.Thread = threading.Thread(
+            target=service.periodically_update_slaves,
+            daemon=True
+        )
+        thread.start()
+        return thread

@@ -147,7 +147,7 @@ class Client():
             # If the connection is lost, retry the connection (not during sending a request)
             self.retry_connection()
         try:
-            # get the request from the queue 
+            # get the request from the queue
             curr_request: Request = self.requests[0]
             # Case where the request is send and server fails
             # Send request to the server (example method call)
@@ -232,7 +232,6 @@ class Client():
         '''
         Retry the connection to the server
         '''
-        #TODO PUT THE IPS IN THE CONFIG FILE FROM THE SERVERS
         retries: int = 0
         while retries < self.retries_conn:
             try:

@@ -243,8 +243,8 @@ class DropBoxV1Service(
         except subprocess.CalledProcessError as error:
             print(f"Error in the promotion from slave to master subprocess {error}")
             return None
-        except Exception as error:
-            print(f"Error promoting slave to master has failed after bully algorithm: {error}")
+        except (OSError) as e: # Acknowledge failure
+            print(f"Error promoting slave to master has failed after bully algorithm: {e}")
             return None
     def set_thread(self, thread: ThreadedServer) -> None:
         '''

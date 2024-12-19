@@ -123,7 +123,7 @@ class TaskProcessorSlave(
         #     "request": req_client,
         #     "acks": []
         # })
-        pass
+        return
     def process_tasks(self) -> Generator[Response, Any, Any]:
         '''
         Process the tasks infinitely until failure
@@ -190,3 +190,29 @@ class TaskProcessorSlave(
                         client_service_list.pop(0)
                         self.queue_processor["css"] = client_service_list
             yield response
+    @rpyc.exposed
+    def update_after_failure(self, request: Request) -> Response:
+        action_to_provide: str = request.action
+        if action_to_provide == "set_directory" or request == "set_client_path":
+            self.append_task(
+                request=request,
+                type_req="css"
+            )
+        else:
+            self.append_task(
+                request=request,
+                type_req="fms"
+            )
+        # Start the processor as generator
+        task_generator = self.process_tasks()
+        response = next(task_generator)
+        # Ensure the response id matches request_id using the task ID
+        if response.id_response == request.task.id_task:
+            return response
+        return Response(
+                error="ActionError in recovery from the slave nodes",
+                message="Error: ",
+                status_code=3,
+                time_sent=time.time(),
+                id_response=request.task.id_task
+            )

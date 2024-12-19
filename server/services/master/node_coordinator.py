@@ -2,12 +2,13 @@
 Node coordinator module
 '''
 from typing import Any
+import threading
 from rpyc.utils.classic import obtain
 from rpyc.utils.server import UDPRegistryClient
 from rpyc.utils.factory import discover
 from rpyc.utils.factory import DiscoveryError
 from server.imports.import_server_base import rpyc, Request, Response,\
-    SERVERS_IP, time
+    time
 from server.services.slave.server_impl import DropBoxV1Service
 from server.services.master.task_distributor import TaskDistributor
 
@@ -32,15 +33,19 @@ class NodeCoordinator(TaskDistributor):
         self.slaves_health: list[float] = []
         self.file_management_service: IFileManagementService = file_management_service
         self.client_server_service: IClientServerService = client_server_service
+        self.master_coordinator_lock: threading.Lock = threading.Lock()
 
     def self_apply_request (
         self,
         request: Request,
-        sequence_events: list[dict[str, object]]
+        # sequence_events: list[dict[str, object]]
     ) -> (Response | Exception):
+        '''
+        Apply the request to the own master
+        '''
         task_action: str = request.action
         try:
-            response: Response = None          
+            response: Response = None
             match task_action:
                 case 'file_created' | 'modified' | 'touch' | 'cp' | 'created':
                     response = self.file_management_service.write_chunk_no_mv(
@@ -87,14 +92,26 @@ class NodeCoordinator(TaskDistributor):
                         id_response=request.task.id_task
                     )
             return response
-        except Exception as e:
-            print(e)
+        except FileNotFoundError as e:
             return Response(
                 status_code=1,
-                message="Error dispatching request, TaskDistributor",
+                message="Error dispatching request to self, TaskDistributor",
                 error=str(e)
             )
-    
+        except FileExistsError as e:
+            return Response(
+                status_code=2,
+                message="Error dispatching request to self, TaskDistributor",
+                error=str(e)
+            )
+        except (OSError, IOError) as e:
+            print(f"Error: {e}")
+            return Response(
+                error=e,
+                message=f'Error en action: {e}',
+                status_code=13,
+                time_sent=time.time()
+            )
     def distribute_load_slaves(
         self,
         request: Request,
@@ -104,7 +121,8 @@ class NodeCoordinator(TaskDistributor):
         Distribute the load
         '''
         try:
-            list_acks: list = sequence_events[-1]["acks"]
+            with self.master_coordinator_lock:
+                list_acks: list = sequence_events[-1]["acks"]
             for server_id, slave_service in self.slaves.items():
                 slave_service: DropBoxV1Service
                 server_id: int
@@ -118,13 +136,18 @@ class NodeCoordinator(TaskDistributor):
                         print(f"Response: {response}")
                         response = obtain(response)
                         if response.status_code == 0:
-                            list_acks.append((slave_service.get_ip_service(), response))
+                            with self.master_coordinator_lock:
+                                list_acks.append(
+                                    (slave_service.get_ip_service(),
+                                    slave_service.get_port(),
+                                    response)
+                                )
                         else:
                             print(
                                 f"Error distributing load to server \
                                     {server_id}, from node coordinator"
                             )
-                    except Exception as e:
+                    except (OSError, IOError) as e:
                         print(
                             f"Error distributing load to server \
                                 {server_id}, {e}, from node coordinator, general exception"
@@ -135,7 +158,7 @@ class NodeCoordinator(TaskDistributor):
                 error=None,
                 is_broadcasted=True
             )
-        except Exception as e:
+        except (OSError, IOError) as e:
             return Response(
                 status_code=1,
                 message="Error distributing load to slaves from node coordinator",
@@ -144,14 +167,14 @@ class NodeCoordinator(TaskDistributor):
     def apply_self_set_client_path(
             self,
             request: Request,
-            sequence_events: list[dict[str, object]]
-    ) -> None:
+            # sequence_events: list[dict[str, object]]
+    ) -> Response:
         '''
         Set the initial path of the server in the first call
         '''
         try:
-            self.client_server_service.set_client_path(request=request)
-        except Exception as e:
+            return self.client_server_service.set_client_path(request=request)
+        except (OSError, IOError) as e:
             return Response(
                 status_code=1,
                 message="Error setting client path to slaves from node coordinator",
@@ -166,7 +189,8 @@ class NodeCoordinator(TaskDistributor):
         Set the client path
         '''
         try:
-            list_acks: list = sequence_events[-1]["acks"]
+            with self.master_coordinator_lock:
+                list_acks: list = sequence_events[-1]["acks"]
             for server_id, slave_service in self.slaves.items():
                 slave_service: DropBoxV1Service
                 server_id: int
@@ -178,13 +202,18 @@ class NodeCoordinator(TaskDistributor):
                         )
                         response = obtain(response)
                         if response.status_code == 0:
-                            list_acks.append((slave_service.get_ip_service(), response))
+                            with self.master_coordinator_lock:
+                                list_acks.append(
+                                    (slave_service.get_ip_service(),
+                                    slave_service.get_port(),
+                                    response)
+                                )
                         else:
                             print(
                                 f"Error setting client path for server\
                                     {server_id}, from node coordinator"
                                 )
-                    except Exception as e:
+                    except (OSError, IOError) as e:
                         print(
                             f"Error setting client path for server {server_id},\
                                 {e}, from node coordinator, general exception"
@@ -195,7 +224,7 @@ class NodeCoordinator(TaskDistributor):
                     error=None,
                     is_broadcasted=True
                 )
-        except Exception as e:
+        except (OSError, IOError) as e:
             return Response(
                 status_code=1,
                 message="Error setting client path to slaves from node coordinator",
@@ -226,7 +255,7 @@ class NodeCoordinator(TaskDistributor):
                 self.slaves[service.get_server_id()] = service
             except DiscoveryError as e:
                 print(f"Error: {e}")
-            except Exception as e:
+            except (OSError, IOError) as e:
                 print(f"Error: {e}")
         self.broadcast_slaves()
         print("Slaves set", self.slaves)
@@ -246,7 +275,7 @@ class NodeCoordinator(TaskDistributor):
         '''
         slaves_to_broadcast: list[tuple[str, int]] = []
         # Normalize dictionary, obtaining only the (server_id, server_port)
-        for key in self.slave_connections.keys():
+        for key in self.slave_connections:
             server_id: str = key.get_server_id()
             server_port: int = key.get_port()
             slaves_to_broadcast.append((server_id, server_port))
@@ -255,5 +284,5 @@ class NodeCoordinator(TaskDistributor):
             election_service: IElection = obtain(slave_service.get_election_service())
             try:
                 election_service.set_slaves_broadcasted(slaves_to_broadcast)
-            except Exception as e:
+            except (OSError, IOError) as e:
                 print(f"Error broadcasting slaves: {e}")

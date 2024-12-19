@@ -45,3 +45,8 @@ class ITaskProcessorSlave(ABC):
         '''
         Infinite hearing to record of requests
         '''
+    @abstractmethod
+    def update_after_failure(self, request: Request) -> Response:
+        '''
+        Update the state after a failure
+        '''

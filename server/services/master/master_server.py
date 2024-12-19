@@ -4,7 +4,7 @@ master server (coordinator)
 will have one replica server
 '''
 
-from server.imports.import_server_base import Callable, rpyc, os, inspect\
+from server.imports.import_server_base import Callable, rpyc\
     , Request, Response, time
 
 from server.services.base.base_service import Service
@@ -37,10 +37,10 @@ class MasterServerService(
         ) -> None:
         super().__init__(health_service=health_service)
         self.node_coordinator: NodeCoordinator = coordinator
-        # self.server_relative_path: str = os.getcwd()
         self.sequence_events = []
         self.set_server_id(1)
         self.server_thread: rpyc.ThreadedServer = None
+        self.update_replicas_timer: int = 40
     @staticmethod
     def apply_slave_distribution_wrapper(
         method: Callable[['MasterServerService', Request, int],
@@ -55,12 +55,13 @@ class MasterServerService(
             req_client: Request,
         ) -> (Response | Exception):
             try:
-                self.sequence_events.append({
-                    "timestamp": time.time(),
-                    "user": req_client.task.user,
-                    "request": req_client,
-                    "acks": []
-                })
+                with self.node_coordinator.master_coordinator_lock:
+                    self.sequence_events.append({
+                        "timestamp": time.time(),
+                        "user": req_client.task.user,
+                        "request": req_client,
+                        "acks": []
+                    })
                 result: (Response | Exception) = self.node_coordinator.distribute_load_slaves(
                     req_client,
                     sequence_events=self.sequence_events
@@ -73,7 +74,6 @@ class MasterServerService(
                 print(f"Error distributing load: {e}")
                 return e
         return wrapper
-    ###################################################
     @staticmethod
     def apply_modification_master_wrapper(
         method: Callable[['MasterServerService', Request, int],
@@ -88,12 +88,13 @@ class MasterServerService(
             req_client: Request,
         ) -> (Response | Exception):
             try:
-                self.sequence_events.append({
-                    "timestamp": time.time(),
-                    "user": req_client.task.user,
-                    "request": req_client,
-                    "acks": []
-                })
+                with self.node_coordinator.master_coordinator_lock:
+                    self.sequence_events.append({
+                        "timestamp": time.time(),
+                        "user": req_client.task.user,
+                        "request": req_client,
+                        "acks": []
+                    })
                 result: (Response | Exception) = self.node_coordinator.self_apply_request(
                     req_client,
                     sequence_events=self.sequence_events
@@ -101,13 +102,11 @@ class MasterServerService(
                 print(result)
                 if isinstance(result, Exception):
                     raise result
-                sig = inspect.signature(method)
                 return method(self, req_client)
             except (ConnectionError, TimeoutError, ValueError) as e:
                 print(f"Error distributing load: {e}")
                 return e
         return wrapper
-    ###################################################
     def on_connect(self, conn: rpyc.Connection) -> None:
         '''
         Method to be called when a connection is established
@@ -182,3 +181,50 @@ class MasterServerService(
     @rpyc.exposed
     def get_leader_ip(self) -> str:
         pass
+    @rpyc.exposed
+    def periodically_update_slaves(self) -> None:
+        '''
+        Update the slaves after failing.
+        '''
+        while True:
+            # For every ack not received from a slave
+            # call the method to update the slave from its service
+            with self.node_coordinator.master_coordinator_lock:
+                for event in self.sequence_events:
+                    acknowledgements: list[tuple[int, Response]] = event["acks"]
+                    if len(acknowledgements) < len(self.node_coordinator.slaves):
+                        # Get where the serviceId is missing from the acknowledgements
+                        # And four services
+                        # {1: Service1, 2: Service2, 3: Service3}
+                        missing_elements: list[tuple[int, int]] = list(
+                            filter(
+                                lambda x, acks=acknowledgements: x not in {
+                                    (ack[0], ack[1]) for ack in acks
+                                },
+                                self.node_coordinator.slaves.keys())
+                        )
+                        for missing_service_ip, missing_service_port in missing_elements:
+                            try:
+                                conn: rpyc.Connection = rpyc.connect(
+                                    missing_service_ip,
+                                    missing_service_port,
+                                    config={
+                                        'allow_pickle': True,
+                                        'allow_all_attrs': True,
+                                        'allow_public_attrs': True
+                                    },
+                                )
+                                service = conn.root
+                                response: Response = service.task_processor.update_after_failure(
+                                    event["request"]
+                                )
+                                if response.status_code == 0:
+                                    acknowledgements.append(
+                                        (missing_service_ip, missing_service_port, response)
+                                    )
+                                else:
+                                    print(f"Error when trying to update join of slave: \
+                                        {response.message}")
+                            except ConnectionError as e:
+                                print(f"Error when trying to update join of slave: {e}")
+            time.sleep(self.update_replicas_timer)
