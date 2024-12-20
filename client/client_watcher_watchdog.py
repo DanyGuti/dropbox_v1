@@ -159,11 +159,12 @@ class ClientWatcher(Client, SystemEventHandler):
                 event: FileSystemEvent = accum_events[0]
                 if not any(isinstance(e, (FileMovedEvent, FileClosedEvent))\
                     for e in accum_events):
-                    accum_events.clear()
                     file_name : str = self.construct_curr_path(event.src_path)
                 if any((isinstance(e, (DirCreatedEvent)) for e in accum_events)):
+                    accum_events.clear()
                     self.send_to_client(event.src_path, 'mkdir', file_name, "", True)
                 elif any((isinstance(e, (DirDeletedEvent)) for e in accum_events)):
+                    accum_events.clear()
                     self.send_to_client(event.src_path, 'rmdir', file_name, "", True)
                 elif any((isinstance(e, (FileMovedEvent)) for e in accum_events)):
                     moved_event = next((e for e in accum_events if isinstance(e
@@ -178,8 +179,10 @@ class ClientWatcher(Client, SystemEventHandler):
                         moved_event.dest_path
                     )
                 elif any((isinstance(e, (FileDeletedEvent)) for e in accum_events)):
+                    accum_events.clear()
                     self.send_to_client(event.src_path, 'rm', file_name)
                 elif (len(accum_events == 1) and isinstance(event, FileCreatedEvent)):
+                    accum_events.clear()
                     self.send_to_client(event.src_path, 'touch', file_name)
                 else:
                     if any((isinstance(e, (FileClosedEvent)) for e in accum_events)):
