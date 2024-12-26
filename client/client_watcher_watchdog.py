@@ -181,7 +181,7 @@ class ClientWatcher(Client, SystemEventHandler):
                 elif any((isinstance(e, (FileDeletedEvent)) for e in accum_events)):
                     accum_events.clear()
                     self.send_to_client(event.src_path, 'rm', file_name)
-                elif (len(accum_events == 1) and isinstance(event, FileCreatedEvent)):
+                elif len(accum_events) == 1 and isinstance(event, FileCreatedEvent):
                     accum_events.clear()
                     self.send_to_client(event.src_path, 'touch', file_name)
                 else:

@@ -37,14 +37,14 @@ class SystemEventHandler(FileSystemEventHandler):
         # Ignore __pycache__
         # if '__pycache__' in event.src_path:
             # return None# Ignore this event if __pycache__ is in the path
-        if isinstance(event, FileCreatedEvent, DirCreatedEvent):
+        if isinstance(event, (FileCreatedEvent, DirCreatedEvent)):
             return event
         return None
     def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent):
         '''
         Handle the deletion of a file or a directory
         '''
-        if isinstance(event, FileDeletedEvent, DirDeletedEvent):
+        if isinstance(event, (FileDeletedEvent, DirDeletedEvent)):
             return event
         return None
         # Ignore __pycache__
