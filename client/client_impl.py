@@ -114,7 +114,7 @@ class Client():
         chunk_size: int = 1024 * 1024  # 1MB chunks
         try:
             # Check if the file is empty
-            if os.path.getsize(file_path) == 0:
+            if os.path.getsize(file_path) == 0 and self.request.action != 'mv':
                 self.request.action = 'touch'
                 print(
                     f"File '{file_name}' is empty. \
