@@ -121,6 +121,8 @@ class Client():
                     Only creating the file on the server without sending data.")
                 self.upload_chunk(b'')  # Create the file on the server without data
                 return
+            elif os.path.getsize(file_path) == 0 and self.request.action == 'mv':
+                self.upload_chunk(b'')  # Create the file on the server without data
             with open(file_path, 'rb') as file:
                 chunk: bytes = file.read(chunk_size)
                 while chunk:
