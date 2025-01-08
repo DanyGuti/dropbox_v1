@@ -13,6 +13,7 @@ class IFileManagementService(ABC):
         self,
         file_name: str,
         server_relative_path: str,
+        chunk: bytes,
         action :str
     ) -> None:
         '''
