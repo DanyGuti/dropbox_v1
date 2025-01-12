@@ -194,37 +194,31 @@ class NodeCoordinator(TaskDistributor):
             for server_id, slave_service in self.slaves.items():
                 slave_service: DropBoxV1Service
                 server_id: int
-                if server_id == slave_service.get_server_id():
-                    try:
-                        response: Response = self.disptach_set_client_path(
-                            request=request,
-                            slave=slave_service,
-                        )
-                        response = obtain(response)
-                        if response.status_code == 0:
-                            with self.master_coordinator_lock:
-                                list_acks.append(
-                                    (slave_service.get_ip_service(),
-                                    slave_service.get_port(),
-                                    response)
-                                )
-                        else:
-                            print(
-                                f"Error setting client path for server\
-                                    {server_id}, from node coordinator"
-                                )
-                    except (OSError, IOError) as e:
+                try:
+                    response: Response = self.disptach_set_client_path(
+                        request=request,
+                        slave=slave_service,
+                    )
+                    response = obtain(response)
+                    if response.status_code == 0:
+                        list_acks.append((slave_service.get_ip_service(), response))
+                    else:
                         print(
-                            f"Error setting client path for server {server_id},\
-                                {e}, from node coordinator, general exception"
+                            f"Error setting client path for server\
+                                {server_id}, from node coordinator"
                             )
-                return Response(
-                    status_code=0,
-                    message="Client path set to slaves from node coordinator",
-                    error=None,
-                    is_broadcasted=True
-                )
-        except (OSError, IOError) as e:
+                except Exception as e:
+                    print(
+                        f"Error setting client path for server {server_id},\
+                            {e}, from node coordinator, general exception"
+                        )
+            return Response(
+                status_code=0,
+                message="Client path set to slaves from node coordinator",
+                error=None,
+                is_broadcasted=True
+            )
+        except Exception as e:
             return Response(
                 status_code=1,
                 message="Error setting client path to slaves from node coordinator",
@@ -235,7 +229,7 @@ class NodeCoordinator(TaskDistributor):
         Get the list of slaves
         '''
         registry: UDPRegistryClient = \
-        UDPRegistryClient(ip="158.227.125.64", port=50081)  # Discover the registry server
+        UDPRegistryClient(ip="158.227.124.57", port=50081)  # Discover the registry server
         print("Discovering services...", registry.list())
         discovered_services: (list[tuple] | int | Any) = discover('DROPBOXV1', registrar=registry)
         print("Discovered services", discovered_services)
