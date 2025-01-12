@@ -245,6 +245,12 @@ class NodeCoordinator(TaskDistributor):
                     },
                 )
                 service: DropBoxV1Service = conn.root
+                if service in self.slave_connections:
+                    print(f"Service {service} already in master node!")
+                    continue
+                if service.get_server_id() in self.slaves:
+                    print(f"Service id {service} already master node!")
+                    continue
                 self.slave_connections[service] = conn
                 self.slaves[service.get_server_id()] = service
             except DiscoveryError as e:
